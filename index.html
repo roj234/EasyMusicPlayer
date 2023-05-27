@@ -1,155 +1,140 @@
 <!doctype html>
-<html>
+<html lang="zh">
 <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=0">
-    <meta name="renderer" content="webkit">
-    <meta name="author" content="mengkun">
-    <meta name="generator" content="KodCloud">
-    <meta http-equiv="Cache-Control" content="no-siteapp">
-    
-    <!-- 强制移动设备以app模式打开页面(即在移动设备下全屏，仅支持部分浏览器) -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-touch-fullscreen" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="full-screen" content="yes"><!--UC强制全屏-->
-    <meta name="browsermode" content="application"><!--UC应用模式-->
-    <meta name="x5-fullscreen" content="true"><!--QQ强制全屏-->
-    <meta name="x5-page-mode" content="app"><!--QQ应用模式-->
-    
-    <title>MKOnlinePlayer v2.4</title>
-    <meta name="description" content="一款开源的基于网易云音乐api的在线音乐播放器。具有音乐搜索、播放、下载、歌词同步显示、个人音乐播放列表同步等功能。"/>
-    <meta name="keywords" content="孟坤播放器,在线音乐播放器,MKOnlinePlayer,网易云音乐,音乐api,音乐播放器源代码"/>
-    
-    <!-- 不支持IE8及以下版本浏览器 -->
-    <!--[if lte IE 8]>
-        <script>window.location.href="plugins/killie/"</script>
-    <![endif]--> 
-    
-    <!-- favicon图标 -->
-    <link rel="shortcut icon" href="favicon.ico">
-    
-    <!-- jQuery文件 -->
-    <script src="js/jquery.min.js"></script>
-    
-    <!-- 播放器样式表文件 -->
-    <link rel="stylesheet" type="text/css" href="css/player.css">
-    
-    <!-- 小屏幕样式修复 -->
-    <link rel="stylesheet" type="text/css" href="css/small.css">
-    
-    <!-- 滚动条美化样式文件 -->
-    <link rel="stylesheet" type="text/css" href="css/jquery.mCustomScrollbar.min.css">
-    
-    <!-- layer弹窗插件样式文件 -->
-    <link rel="stylesheet" href="plugins/layer/skin/default/layer.css?v=3.0.2302" id="layuicss-skinlayercss">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=0">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-siteapp">
+  
+  <!-- 强制移动设备以app模式打开页面(即在移动设备下全屏，仅支持部分浏览器) -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-touch-fullscreen" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="full-screen" content="yes"><!--UC强制全屏-->
+  <meta name="browsermode" content="application"><!--UC应用模式-->
+  <meta name="x5-fullscreen" content="true"><!--QQ强制全屏-->
+  <meta name="x5-page-mode" content="app"><!--QQ应用模式-->
+  
+  <title>曲易听EMP</title>
+  
+  <!-- favicon图标 -->
+  <link rel="shortcut icon" href="favicon.ico" />
+  
+  <!-- 播放器样式表文件 -->
+  <link rel="stylesheet" type="text/css" href="css/player.css?31226" />
 </head>
 <body>
 
-<div id="blur-img"></div>
+<div class="blur-bg"><img class="no_select" id="blur-img" alt="背景图片"/></div>
 
-<!-- 头部logo -->
+<!-- 头部 -->
 <div class="header">
-    <div class="logo" title="Version 2.4; Based on Meting; Powered by Mengkun">
-        ♫ MKOnlinePlayer
-    </div>
-</div>  <!--class="header"-->
+  <div class="logo" title="Easy Music Player">♫ 曲易听 3.0</div>
+  <div class="btn">请登录</div>
+</div>
 
 <!-- 中间主体区域 -->
 <div class="center">
-    <div class="container">
-        <div class="btn-bar">
-            <!-- tab按钮区 -->
-            <div class="btn-box" id="btn-area">
-                <span class="btn" data-action="player" hidden>播放器</span>
-                <span class="btn" data-action="playing" title="正在播放列表">正在播放</span>
-                <span class="btn" data-action="sheet" title="音乐播放列表">播放列表</span>
-                <span class="btn" data-action="search" title="点击搜索音乐">歌曲搜索</span>
-            </div>
-        </div>  <!--class="btn-bar"-->
-        
-        <div class="data-area">
-            <!--歌曲歌单-->
-            <div id="sheet" class="data-box" hidden></div>
-            
-            <!--音乐播放列表-->
-            <div id="main-list" class="music-list data-box"></div>
-        </div>  <!--class="data-area"-->
-        
-        <!-- 右侧封面及歌词展示 -->
-        <div class="player" id="player">
-            <!--歌曲封面-->
-            <div class="cover">
-                <img src="images/player_cover.png" class="music-cover" id="music-cover">
-            </div>
-            <!--滚动歌词-->
-            <div class="lyric">
-                <ul id="lyric"></ul>
-            </div>
-            <div id="music-info" title="点击查看歌曲信息"></div>
-        </div>
-    </div>  <!--class="container"-->
+  <div class="container">
+<div class="btn-bar">
+  <!-- tab按钮区 -->
+  <div class="btn-box">
+<span class="btn player">播放器</span>
+<span class="btn list">正在播放</span>
+<span class="btn sheet">播放列表</span>
+  </div>
+  
+  <div class="search">
+<button class="site" title="选择搜索站点"></button>
+
+<ul class="list">
+  <li data-source="netease">网易云音乐</li>
+  <li data-source="tencent">QQ音乐</li>
+  <li data-source="kugou">酷狗音乐</li>
+  <li data-source="migu">咪咕音乐</li>
+  <li data-source="kuwo">酷我音乐</li>
+</ul>
+
+<input type="text" id="search-wd" placeholder="搜索歌手、歌名、专辑" maxlength="30" autocomplete="off" title="你想听点什么?" />
+<button class="s-btn">搜索</button>
+  </div>
+</div>  <!--class="btn-bar"-->
+
+<div class="data-area">
+  <!--歌曲歌单-->
+  <div id="sheet" class="data-box" style="display: none"></div>
+  
+  <!--音乐播放列表-->
+  <table id="play-list" class="data-box"></table>
+</div>
+
+<!-- 右侧封面及歌词展示 -->
+<div class="player" id="player">
+  <!--歌曲封面-->
+  <div class="cover">
+<img src="images/player_cover.png" id="music-cover" alt="专辑封面" />
+  </div>
+  <!--滚动歌词-->
+  <div class="lyric"></div>
+  
+  <div class="float-btn dot" style="bottom: 0.625rem;background-image: none;" title="查看歌曲信息"></div>
+  <div class="float-btn music-speed" title="歌曲调速"></div>
+</div>
+  </div>  <!--class="container"-->
 </div>  <!--class="center"-->
 
 <!-- 播放器底部区域 -->
 <div class="footer">
-    <div class="container">
-        <div class="con-btn">
-            <a href="javascript:;" class="player-btn btn-prev" title="上一首"></a>
-            <a href="javascript:;" class="player-btn btn-play" title="暂停/继续"></a>
-            <a href="javascript:;" class="player-btn btn-next" title="下一首"></a>
-			<a href="javascript:;" class="player-btn btn-order" title="循环控制"></a>
-        </div>  <!--class="con-btn"-->
-        
-        <div class="vol">
-            <div class="quiet">
-                <a href="javascript:;" class="player-btn btn-quiet" title="静音"></a>
-            </div>
-            <div class="volume">
-                <div class="volume-box">  
-                    <div id="volume-progress" class="mkpgb-area"></div>
-                </div>
-            </div>
-        </div>  <!--class="footer"-->
-        
-        <div class="progress">
-            <div class="progress-box">  
-                <div id="music-progress" class="mkpgb-area"></div>
-            </div>
-        </div>  <!--class="progress"-->
-    </div>  <!--class="container"-->
+  <div class="container">
+<div class="con-btn">
+  <a class="btn-prev" title="上一首"></a>
+  <a class="btn-play" title="暂停/继续"></a>
+  <a class="btn-next" title="下一首"></a>
+  <a class="btn-order" title="循环控制"></a>
+</div>
+
+<div class="vol">
+  <div class="quiet">
+<a href="javascript:" class="player-btn btn-quiet" title="静音"></a>
+  </div>
+  <div class="volume">
+<div id="volume-progress"></div>
+  </div>
 </div>  <!--class="footer"-->
 
-<!-- layer弹窗插件 -->
-<script src="plugins/layer/layer.js"></script>
+<div class="progress">
+  <div id="music-progress"></div>
+</div>
+  </div>
+</div>
 
-<!-- 播放器数据加载模块 -->
-<script src="js/ajax.js"></script>
+<!-- 右键菜单 -->
+<div id="album_menu" class="my_submenu a no_select">
+<li><a class="a">复制</a></li>
+<li><a class="a">重命名</a></li>
+<li><a class="a">删除</a></li>
+</div>
+<div id="song_menu" class="my_submenu a no_select">
+<li><a class="a">下载</a></li>
+<li><a class="a">离线</a></li>
+<li><a class="a">找专辑</a></li>
+<li><a class="a">找歌手</a></li>
+<li><a class="a">信息</a></li>
+<li><a class="a">物理删除</a></li>
+</div>
 
-<!-- 播放器歌词解析模块 -->
-<script src="js/lyric.js"></script>
+<img class="pic-preload" src="images/player_cover.png"  alt="预载"/>
+<img class="pic-preload" src="images/iconset.png"  alt="预载"/>
 
-<!-- 音乐列表配置 -->
-<script src="js/musicList.js"></script>
-
-<!-- 封装函数及ui交互模块 -->
-<script src="js/functions.js"></script>
-
-<!-- 播放器主体功能模块 -->
-<script src="js/player.js"></script>
-
-<!-- 滚动条美化插件 -->
-<script src="js/jquery.mCustomScrollbar.concat.min.js"></script>
-
-<!-- 背景模糊化插件 -->
-<script src="js/background-blur.min.js"></script>
-
-<!-- 站长统计代码 -->
-<span style="display: none">
-    <!-- 各类统计代码都放在这里…… -->
-    
-</span>
-
+<!-- FunEx + artDialog -->
+<script src="js/FunEx.min.js"></script>
+<!-- 音乐列表 -->
+<script src="js/player.config.js"></script>
+<!-- 播放机主文件 -->
+<script src="js/player.js" async defer></script>
+<script src="js/emp.lyricAutoBg.js" async defer></script>
+<script src="js/emp.karaoke.js" async defer></script>
+<script src="js/emp.searchMusic.js" async defer></script>
 </body>
 </html>
