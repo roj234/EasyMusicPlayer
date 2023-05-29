@@ -35,7 +35,7 @@ mkPlayer.plugin("WebAudio-DSP", function() {
 		}
 
 		draw(pcm) {}
-	};
+	}
 
 	class WaveVisualizer extends SoundVisualizer {
 		constructor(ctx, c) {
@@ -118,7 +118,7 @@ mkPlayer.plugin("WebAudio-DSP", function() {
 
 			var data = this.data, node = this.node;
 			if (!data) return; // destroy
-			if (data.length != node.frequencyBinCount) {
+			if (data.length !== node.frequencyBinCount) {
 				data = this.data = new Float32Array(node.frequencyBinCount);
 			}
 			node.getFloatFrequencyData(data);
@@ -268,12 +268,12 @@ mkPlayer.plugin("WebAudio-DSP", function() {
 
 		return {
 			strength: function(val) {
-				if (arguments.length == 0) return devocal.gain.value;
+				if (arguments.length === 0) return devocal.gain.value;
 				direct.gain.value = 1-val;
 				devocal.gain.value = val;
 			}, 
 			frequency: function(from, to) {
-				if (arguments.length == 0)
+				if (arguments.length === 0)
 					return [filterLP.frequency.value-filterLP.Q.value,
 									filterLP.frequency.value+filterLP.Q.value];
 				var center = (from+to)/2;
@@ -314,11 +314,11 @@ mkPlayer.plugin("WebAudio-DSP", function() {
 
 		return {
 			strength: function(val) {
-				if (arguments.length == 0) return echo.gain.value;
+				if (arguments.length === 0) return echo.gain.value;
 				echo.gain.value = val;
 			}, 
 			time: function(val) {
-				if (arguments.length == 0) return delay.delayTime.value;
+				if (arguments.length === 0) return delay.delayTime.value;
 				delay.delayTime.value = val;
 			}, 
 			destroy: function() {
@@ -337,7 +337,7 @@ mkPlayer.plugin("WebAudio-DSP", function() {
 		// Distortion curve for the waveshaper, thanks to Kevin Ennis
 		// http://stackoverflow.com/questions/22312841/waveshaper-node-in-webaudio-how-to-emulate-distortion
 		function setDistortionCurve(amount) {
-			if (amount == 0) {
+			if (amount === 0) {
 				distortion.curve = null;
 				return;
 			}
@@ -357,7 +357,7 @@ mkPlayer.plugin("WebAudio-DSP", function() {
 
 		return {
 			amount: function(val) {
-				if (arguments.length == 0) return _amount;
+				if (arguments.length === 0) return _amount;
 				setDistortionCurve(val);
 				_amount = val;
 			}, 
@@ -396,7 +396,7 @@ mkPlayer.plugin("WebAudio-DSP", function() {
 
 		return {
 			strength: function(val) {
-				if (arguments.length == 0) return conv.gain.value;
+				if (arguments.length === 0) return conv.gain.value;
 				direct.gain.value = 1-val;
 				conv.gain.value = val;
 			}, 

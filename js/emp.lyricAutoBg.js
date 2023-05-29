@@ -49,6 +49,10 @@ var img = $("#music-cover").on("load", function(e) {
 
 
 	BSLowHeap.prototype.add = function(node) {
+		if (this.entries.length === this.max) {
+			this.entries.length = this.max-1;
+		}
+
 		var nearest = this.binarySearch(node);
 		if(nearest >= 0) {
 			this.entries[nearest][1]++;
@@ -58,9 +62,6 @@ var img = $("#music-cover").on("load", function(e) {
 			var data1 = this.entries;
 			data1.splice(index, 0, [node,1]);
 			return true;
-		}
-		if (this.entries.length > this.max) {
-			this.entries.length = this.max;
 		}
 	}
 
@@ -73,13 +74,13 @@ function getLightDark(img) {
 		var data = ctx.getImageData(0,0,c.width,c.height).data;
 	} catch (e) {return;}
 
-	var qty = 256;
+	var qty = 512;
 	var dit = new BSLowHeap((a, b) => {
 		return a.l-b.l;
-	}, 1000);
+	}, qty);
 	var lit = new BSLowHeap((a, b) => {
 		return b.l-a.l;
-	}, 1000);
+	}, qty);
 
 	var L = 0;
 	for (let j = 0; j < data.length; j += 4) {
@@ -176,7 +177,7 @@ function hsl2rgb(h,s,l,rgb) {
 			if (t < 1 / 2) return q;
 			if (t < 2 / 3) return p + ( q - p ) * 6 * ( 2 / 3 - t );
 			return p;
-		};
+		}
 
 		var p = l <= 0.5 ? l * ( 1 + s ) : l + s - ( l * s );
 		var q = ( 2 * l ) - p;

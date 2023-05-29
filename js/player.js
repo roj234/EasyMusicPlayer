@@ -2,45 +2,38 @@
  * EasyMusicPlayer 2.8
  * 受 MKOnlinePlayer 的启发: mkblog.cn
  *************************************************/
-window.apply = function(o, n) {
-  for (let k in o) {
-    if (n[k] === undefined) n[k] = o[k];
-  }
-  return n;
+window.apply = function (o, n) {
+	for (let k in o) {
+		if (n[k] === undefined) n[k] = o[k];
+	}
+	return n;
 };
 
-$(function() {
+$(function () {
 	let config = window.mkPlayer, rem = window.rem, musicList = window.musicList;
 	let msg = $.dialog.msg;
 	// 这些变量也外部用不到: 进度条, 歌词进度, 背景计时器, 自动缓存
 	let lastProgress = -1, lastLyric = -1, changeBgTimeout = -1, cache;
 
 	let isMobile = {
-		Android: function() {
-			return navigator.userAgent.match(/Android/i) ? true : false;
-		},
-		BlackBerry: function() {
-			return navigator.userAgent.match(/BlackBerry/i) ? true : false;
-		},
-		iOS: function() {
-			return navigator.userAgent.match(/iPhone|iPad|iPod/i) ? true : false;
-		},
-		Windows: function() {
-			return navigator.userAgent.match(/IEMobile/i) ? true : false;
-		},
-		any: function() {
-			return isMobile.Android() || isMobile.BlackBerry() || isMobile.iOS() || isMobile.Windows();
+		any: function () {
+			return !!navigator.userAgent.match(/Mobile|Android|iPhone|iPad|iPod/i);
 		}
 	};
 
-	$.ajax.config.beforeSend = function(xhr) { xhr.setRequestHeader("Content-Type","application/x-www-form-urlencoded; charset=UTF-8"); };
+	$.ajax.config.beforeSend = function (xhr) {
+		xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+	};
 	$.ajax.config.timeout = 20000;
-	let ajaxErr = $.ajax.config.error = function(xhr, st, err, op) {
+	let ajaxErr = $.ajax.config.error = function (xhr, st, err, op) {
 		op = op || "";
-		console.warn(err,op);
-		if(xhr.status == 0) { $.dialog({id:"net_error", title: "网络错误", content: op + ": <b>网络中断了!</b>", lock: 1}); return; }
+		console.warn(err, op);
+		if (xhr.status === 0) {
+			$.dialog({id: "net_error", title: "网络错误", content: op + ": <b>网络中断了!</b>", lock: 1});
+			return;
+		}
 		msg(op + "操作失败了: " + xhr.status);
-	//	stop();
+		//	stop();
 	};
 
 	let mediaHub;
@@ -58,26 +51,26 @@ $(function() {
 		m.setActionHandler("play", pause);
 		m.setActionHandler("pause", pause);
 		mediaHub = {
-			switchTrack: function(t) {
+			switchTrack: function (t) {
 				m.metadata = new MediaMetadata({
 					title: t.name,
 					artist: t.artist,
 					album: t.album,
-					artwork: t.pic&&t.pic!='err'?[{
+					artwork: t.pic && t.pic !== 'err' ? [{
 						src: t.pic,
 						sizes: "300x300",
 						type: "image/jpeg"
-					}]:[]
+					}] : []
 				});
 			},
-			pause: function(p) {
-				m.playbackState = p?"paused":"playing";
+			pause: function (p) {
+				m.playbackState = p ? "paused" : "playing";
 			},
-			updatePos: function() {
+			updatePos: function () {
 				/*let a = rem.audio[0];
 				m.setPositionState({
-					position: a.currentTime, 
-					duration: a.duration, 
+					position: a.currentTime,
+					duration: a.duration,
 					playbackRate: a.playbackRate
 				});*/
 			}
@@ -86,8 +79,8 @@ $(function() {
 
 	// 音频错误处理函数
 	function audioErr(err) {
-		if(err.message) {
-			if(err.message.indexOf("interact") != -1) {
+		if (err.message) {
+			if (err.message.indexOf("interact") !== -1) {
 				msg("无法自动播放");
 				delete rem.idPlaying;
 				$(".playing").removeClass("playing");
@@ -101,7 +94,7 @@ $(function() {
 			console.error(err);
 			$("#music-progress").removeClass("loading").addClass("load-fail");
 			rem.currentPlaying = null;
-			if(rem.errCount != 99) {
+			if (rem.errCount !== 99) {
 				ado.pause();
 				msg('播放似乎出了点问题~');
 			}
@@ -109,12 +102,12 @@ $(function() {
 		} else {
 			// 解决网易云音乐部分歌曲无法播放问题
 			let url = ado.currentSrc;
-			if (url == "") {
+			if (url === "") {
 				url = "err";
 			}
 
 			// 第一次
-			if (rem.errCount == -1) {
+			if (rem.errCount === -1) {
 				let flag = 1;
 				if (url.indexOf("m7c.music") > 0 || url.indexOf("m8c.music") > 0) {
 					url = url
@@ -124,13 +117,13 @@ $(function() {
 					let url1 = url
 						.replace(/m7.music./g, "m7c.music.")
 						.replace(/m8.music./g, "m8c.music.");
-					flag = url1 != url;
+					flag = url1 !== url;
 				}
 
 				rem.errCount = 0;
-				if(flag) {
+				if (flag) {
 					ado.src = url;
-					ado.play().then(function() {
+					ado.play().then(function () {
 						rem.errCount = -1;
 					}, audioErr);
 
@@ -138,10 +131,10 @@ $(function() {
 				}
 			}
 
-			if (rem.errCount == 0) { // 第二次
-				if(musicList[rem.listPlaying]) {
+			if (rem.errCount === 0) { // 第二次
+				if (musicList[rem.listPlaying]) {
 					let msc = musicList[rem.listPlaying].item[rem.idPlaying];
-					if(msc) {
+					if (msc) {
 						ajaxUrl(msc, play);
 						rem.errCount = 1;
 						return;
@@ -167,7 +160,7 @@ $(function() {
 			// 第一次点播放
 			if (rem.listPlaying == null) {
 				if (!musicList[1].item.length) {
-					if(config.replacePlayList && musicList[rem.listDisplay]?.item.length) {
+					if (config.replacePlayList && musicList[rem.listDisplay]?.item.length) {
 						musicList[1].item = Array.from(musicList[rem.listDisplay].item);
 
 						// 保存
@@ -183,7 +176,7 @@ $(function() {
 			}
 
 			if (!rem.currentPlaying) return;
-			rem.audio[0].play().then(function() {
+			rem.audio[0].play().then(function () {
 				rem.errCount = -1;
 			}, audioErr);
 		}
@@ -201,7 +194,8 @@ $(function() {
 	function updateOrder() {
 		let el = $(".btn-order").removeClass("single list linear random");
 
-		delete rem.repeatA; delete rem.repeatB;
+		delete rem.repeatA;
+		delete rem.repeatB;
 
 		rem.audio[0].loop = false;
 		delete rem.rndId;
@@ -226,8 +220,8 @@ $(function() {
 		for (let i = 0; i < x.length; i++) {
 			let j = Math.floor(x.length * Math.random());
 			let t = x[i];
-			 x[i] = x[j];
-			 x[j] = t;
+			x[i] = x[j];
+			x[j] = t;
 		}
 	}
 
@@ -244,7 +238,7 @@ $(function() {
 	function nextMusic(off) {
 		off = off || 1;
 		// 排除下一首播放
-		if (rem.order == 3 && rem.listPlaying != 3) {
+		if (rem.order === 3 && rem.listPlaying !== 3) {
 			let list = musicList[rem.listPlaying];
 			if (!list) return;
 
@@ -253,7 +247,7 @@ $(function() {
 
 				rem.rndListId = rem.listPlaying;
 				let a = list.item0 = Array(list.item.length);
-				for(let i=list.item.length-1;i>=0;i--)a[i]=i;
+				for (let i = list.item.length - 1; i >= 0; i--) a[i] = i;
 				shuffle(a);
 
 				rem.realIdPlaying = a.indexOf(rem.idPlaying);
@@ -261,7 +255,7 @@ $(function() {
 			let c = rem.idPlaying = rem.realIdPlaying;
 
 			c += off;
-			if (c < 0) c = list.item.length-1;
+			if (c < 0) c = list.item.length - 1;
 			else if (c >= list.item.length) c = 0;
 			rem.realIdPlaying = c;
 		}
@@ -271,13 +265,13 @@ $(function() {
 	// 显示的列表中的某一项点击后的处理函数
 	// 参数：歌曲在列表中的编号
 	function listClick(no) {
-		if(rem.listPlaying != rem.listDisplay) {
+		if (rem.listPlaying !== rem.listDisplay) {
 			delete rem.prefetch.cacheId;
 			rem.listPlaying = rem.listDisplay;
 			$("#sheet .sheet").removeClass("playing").findSelf("$data-no=" + rem.listPlaying).addClass("playing");
-		// 20221222 不同列表同一项
-		// 20230130 修复搜索列表点击bug
-		} else if(rem.idPlaying == no && musicList[rem.listPlaying]?.item[no] == rem.currentPlaying) {
+			// 20221222 不同列表同一项
+			// 20230130 修复搜索列表点击bug
+		} else if (rem.idPlaying === no && musicList[rem.listPlaying]?.item[no] === rem.currentPlaying) {
 			// 已经在播放，时间调到开始位置
 			rem.audio[0].currentTime = 0;
 			return true;
@@ -286,7 +280,7 @@ $(function() {
 
 		playList(no);
 
-		if (rem.listPlaying != 1 && config.autoAddToPlaying) {
+		if (rem.listPlaying !== 1 && config.autoAddToPlaying) {
 			// 搜索结果自动加入正在播放
 			addList(musicList[rem.listPlaying].item[no]);
 		}
@@ -298,7 +292,7 @@ $(function() {
 	// 参数：歌曲在列表中的ID
 	function playList(id) {
 		let list = musicList[rem.listPlaying];
-		if(!list) {
+		if (!list) {
 			msg("没有歌曲可以播放!").shake();
 			return;
 		}
@@ -310,7 +304,7 @@ $(function() {
 			return true;
 		}
 
-		if (id >= songs.length || id != id) id = 0;
+		if (id >= songs.length || id !== id) id = 0;
 		if (id < 0) id = songs.length - 1;
 		if (list.item0) id = list.item0[id];
 
@@ -318,7 +312,7 @@ $(function() {
 		rem.idPlaying = id;
 
 		// 如果链接为空，则获取后再播放
-		if(!songs[id].url) ajaxUrl(songs[id], play);
+		if (!songs[id].url) ajaxUrl(songs[id], play);
 		else play(songs[id]);
 	}
 
@@ -328,12 +322,12 @@ $(function() {
 		let url = music.url;
 
 		// 遇到错误不播放
-		if (url == 'err' || url == "" || url == null) {
+		if (url === 'err' || url === "" || url == null) {
 			audioErr("No url");
 			return false;
 		}
 
-		if(config.logMusicId) {
+		if (config.logMusicId) {
 			console.log("开始播放", music.name, music.artist, music.album);
 			console.info("MP3网址", url);
 			console.info("图片网址", music.pic);
@@ -342,7 +336,7 @@ $(function() {
 
 		//stop(); // 停止播放
 
-		mediaHub&&mediaHub.switchTrack(music);
+		mediaHub && mediaHub.switchTrack(music);
 		rem.currentPlaying = music;
 
 		fireEvent("play", music);
@@ -356,7 +350,7 @@ $(function() {
 
 		let a = rem.audio[0];
 		a.src = url;
-		a.play().then(function() {
+		a.play().then(function () {
 			rem.errCount = -1;
 			rem.audio.bar.lock(false);
 
@@ -370,7 +364,7 @@ $(function() {
 	function stop() {
 		$("#music-progress").removeClass("loading load-fail");
 		rem.errCount = 0;
-		if(!rem.currentPlaying) return;
+		if (!rem.currentPlaying) return;
 		//rem.idPlaying = -1;
 		changeCover({pic: "err"});
 		$("#player .lyric").empty();
@@ -389,7 +383,7 @@ $(function() {
 
 	// mk进度条插件
 	// 进度条框 id，初始量，回调函数
-	function mkpgb(bar, percent, callback, flag) {
+	function MkProgressBar(bar, percent, callback, flag) {
 		this.bar = $(bar);
 		this.percent = percent;
 		this.callback = callback;
@@ -397,8 +391,8 @@ $(function() {
 		this.init(flag == null ? 1 : flag);
 	}
 
-	mkpgb.prototype = {
-		constructor: mkpgb,
+	MkProgressBar.prototype = {
+		constructor: MkProgressBar,
 		// 进度条初始化
 		init: function(flag) {
 			let mk = this;
@@ -409,7 +403,7 @@ $(function() {
 			if(flag & 4) {
 				$bar.on("mousedown", function(e) {
 					let dot = $bar.find(".dot");
-					if(mk.locked || e.target != dot[0]) return false;
+					if(mk.locked || e.target !== dot[0]) return false;
 
 					let pc = NaN, anim = $bar.hasClass("animated");
 					let x = sumProp($bar[0]), w = $bar.width();
@@ -417,7 +411,7 @@ $(function() {
 					$(window).once("mouseup", function() {
 						$(window).unbind("mousemove", move);
 						mk.dragging = false;
-						if(pc == pc) {
+						if (pc === pc) {
 							mk.callback(pc);
 							mk.percent = pc;
 						}
@@ -444,7 +438,7 @@ $(function() {
 			}
 
 			$bar.on("mouseup", function(e) {
-				if(e.button != undefined && e.button != 0) return;
+				if (e.button != null && e.button !== 0) return;
 				if (mk.locked || mk.dragging) return false;
 
 				// 动画时间
@@ -518,7 +512,7 @@ $(function() {
 	function musicInList(list, msc) {
 		let m3 = list.length != null ? list : musicList[list].item;
 		for (let i = 0; i < m3.length; i++) {
-			if (m3[i].id == msc.id && m3[i].source == msc.source) {
+			if (m3[i].id === msc.id && m3[i].source === msc.source) {
 				return i;
 			}
 		}
@@ -548,19 +542,19 @@ $(function() {
 			msg("歌曲不存在(原播放列表错误)").shake();
 			return;
 		}
-		if(rem.listDisplay == rem.listPlaying) {
+		if (rem.listDisplay === rem.listPlaying) {
 			scrollNthSong(id);
 		}
-		
+
 		let html = '<span class="info-title">歌名：</span>' + music.name +
 			'<br><span class="info-title">歌手：</span>' + music.artist +
 			'<br><span class="info-title">专辑：</span>' + music.album;
-		if (rem.audio[0].duration && rem.idPlaying == id && musicList[rem.listPlaying] == list)
+		if (rem.audio[0].duration && rem.idPlaying === id && musicList[rem.listPlaying] === list)
 			html += '<br><span class="info-title">时长：</span>' + formatTime(rem.audio[0].duration);
 		html += '<br><span class="info-title">操作：</span>';
 		html += '<span class="info-btn 1">去列表</span>';
 		if(musicList[rem.listDisplay].my) {
-			if (musicInList(rem.listDisplay, music) == -1) {
+			if (musicInList(rem.listDisplay, music) === -1) {
 				html += '<span class="info-btn 2">加入当前列表</span>';
 			} else {
 				html += '<span class="info-btn 3">从当前列表删除</span>';
@@ -575,17 +569,10 @@ $(function() {
 			skin:"d-dark-msg",
 			content: $("<div>").html(html).delegate("click", "span", function(e) {
 				switch(this[0].classList[1]) {
-					case '1':
-						loadList(rem.listPlaying);
-					break;
-					case '2':
-						addList(music, 0, rem.listDisplay);
-					break;
-					case '3':
-						removeList(musicInList(rem.listDisplay, music), rem.listDisplay);
-					break;
-					case '4':
-					case '5':
+					case '1':loadList(rem.listPlaying);break;
+					case '2':addList(music, 0, rem.listDisplay);break;
+					case '3':removeList(musicInList(rem.listDisplay, music), rem.listDisplay);break;
+					case '4':case '5':
 						rem.search = {
 							type: this[0].classList[1] - 3, 
 							wd: rem.currentPlaying
@@ -602,7 +589,7 @@ $(function() {
 	$(".s-btn").on("click", function searchSubmit(m) {
 		let wd;
 		if (rem.isMobile) {
-			if (typeof(m) == "string") {
+			if (typeof (m) === "string") {
 				wd = m;
 			} else {
 				$.dialog.prompt('请输入搜索词', searchSubmit, rem.wd || "");
@@ -617,7 +604,7 @@ $(function() {
 			}
 		}
 
-		rem.search = { wd: wd };
+		rem.search = {wd};
 		ajaxSearch();
 		return false;
 	});
@@ -629,17 +616,10 @@ $(function() {
 
 		list.splice(curId, 1);
 
-		if (selfId == 1)
-			dataStore('playing', list);
-		else if(selfId == 2) {
-			dataStore('history', list);
-		} else if (musicList[selfId].my)
-			dataStore('custom_list', rem.customList);
+        markListChanged(selfId);
+		if (rem.listDisplay === selfId) removeOne(curId, false);
 
-		if (rem.listDisplay == selfId) {
-			removeOne(curId,false);
-		}
-		if (rem.listPlaying == selfId) {
+		if (rem.listPlaying === selfId) {
 			rem.idPlaying = musicInList(selfId, rem.currentPlaying);
 			if (rem.idPlaying < 0) stop();
 		}
@@ -655,31 +635,19 @@ $(function() {
 		// 是否存在这首歌
 
 		for (let i = 0; i < list.length; i++) {
-			if (list[i].id == msc.id && list[i].source == msc.source) {
+			if (list[i].id === msc.id && list[i].source === msc.source)
 				return false;
-			}
-			if (addLastIfCan && cur && list[i].id == cur.id && list[i].source == cur.source) {
+
+			if (addLastIfCan && cur && list[i].id === cur.id && list[i].source === cur.source)
 				curId = i;
-			}
 		}
 
 		// 将这项追加到正在播放
-		if (curId != undefined) {
-			list.splice(curId + 1, 0, msc);
-		} else {
-			list.push(msc);
-		}
-		
-		if (selfId == 1)
-			dataStore('playing', list);
-		else if(selfId == 2) {
-			dataStore('history', list);
-		} else if (musicList[selfId].my)
-			dataStore('custom_list', rem.customList);
+		if (curId != null) list.splice(curId+1, 0, msc);
+		else list.push(msc);
 
-		if (rem.listDisplay == selfId) {
-			loadList(selfId, 0);
-		}
+        markListChanged(selfId);
+		if (rem.listDisplay === selfId) loadList(selfId, 0);
 
 		return true;
 	}
@@ -692,7 +660,7 @@ $(function() {
 		}
 
 		let img = music.pic;
-		if (img == "err") {
+		if (img === "err") {
 			$("#music-cover,#sheet .sheet(0) img").attr('src', "images/player_cover.png");
 			$("#blur-img").removeAttr('src');
 		} else {
@@ -720,10 +688,10 @@ $(function() {
 
 		let play = $("#play-list").empty().append(rem.listHead);
 		let mi = musicList[list].item;
-		if (mi.length == 0) {
+		if (mi.length === 0) {
 			addListbar("nodata", play); // 列表中没有数据
 
-			if(flag === 1 || rem.dataBox == "list")
+			if (flag === 1 || rem.dataBox === "list")
 				dataBox("list"); // 在主界面显示
 		} else {
 			let i = 0;
@@ -742,20 +710,20 @@ $(function() {
 				}
 
 				// 列表加载完成后的处理
-				if (list == 1 || list == 2 || (config.customClear && musicList[list].my)) {
+				if (list === 1 || list === 2 || (config.customClear && musicList[list].my)) {
 					addListbar("clear", play);
 				}
 
-				if (rem.listPlaying !== undefined) {
-					refreshList();
-				}
+				if (rem.listPlaying != null)
+                    refreshList();
 
-				if(flag === 1 || rem.dataBox == "list")
+				if (flag === 1 || rem.dataBox === "list")
 					dataBox("list"); // 在主界面显示
 
 				if (flag !== 0) // no reflow
 					setTimeout(listToTop, 5);
 			}
+
 			step();
 		}
 	}
@@ -763,7 +731,7 @@ $(function() {
 	// 播放列表滚动到顶部
 	function listToTop() {
 		let pl = $("#play-list");
-		if(pl.scrollTop() != 0)
+		if (pl.scrollTop() !== 0)
 			__animate(pl, "scrollTop", 0, 500);
 	}
 
@@ -785,42 +753,35 @@ $(function() {
 		let html;
 		switch (types) {
 			case "more": // 还可以加载更多
-				html = '<div class="list tc list-loadmore clickable" id="list-foot">点击加载更多...</div>';
-				break;
-
+				html = '<div class="list tc list-loadmore clickable" id="list-foot">点击加载更多...</div>';break;
 			case "nomore": // 数据加载完了
-				html = '<div class="list tc" id="list-foot">全都加载完了</div>';
-				break;
-
+				html = '<div class="list tc" id="list-foot">全都加载完了</div>';break;
 			case "loading": // 加载中
-				html = '<div class="list tc" id="list-foot">播放列表加载中...</div>';
-				break;
-
+				html = '<div class="list tc" id="list-foot">播放列表加载中...</div>';break;
 			case "nodata": // 列表中没有内容
-				html = '<div class="list tc" id="list-foot">可能是个假列表，什么也没有</div>';
-				break;
-
+				html = '<div class="list tc" id="list-foot">可能是个假列表，什么也没有</div>';break;
 			case "clear": // 清空列表
-				html = '<div class="list tc list-clear clickable" id="list-foot">清空列表</div>';
-				break;
+				html = '<div class="list tc list-clear clickable" id="list-foot">清空列表</div>';break;
 		}
 		(dest || $("#play-list")).append(html);
 	}
 
-	function removeOne(id, opList=true) {
+    function markListChanged(id=rem.listDisplay) {
+        let list = musicList[id];
+        if (id === 1) dataStore('playing', list);
+        else if (id === 2) dataStore('history', list);
+        else if (list?.my) dataStore('custom_list', rem.customList);
+    }
+
+    function removeOne(id, opList = true) {
 		let list = musicList[rem.listDisplay].item;
 		if (opList) list.splice(id, 1);
 		if (rem.idPlaying >= id) rem.idPlaying--;
 		$("#play-list .list")[id+1].remove();
 		$("#play-list .list!.head .num").each((i, el) => el.innerText = i+1);
 
-		if (rem.listDisplay == 1)
-			dataStore('playing', list);
-		else if(rem.listDisplay == 2) {
-			dataStore('history', list);
-		} else if (list.my)
-			dataStore('custom_list', rem.customList);
-	}
+        markListChanged();
+    }
 
 	function formatTime(time) {
 		let h, m, s;
@@ -844,13 +805,13 @@ $(function() {
 	// 在 ajax 获取了音乐的信息后再进行更新
 	function updateMinfo(music) {
 		if (!music.id) return false;
-		if (music == rem.currentPlaying)
-			mediaHub&&mediaHub.switchTrack(music);
+		if (music === rem.currentPlaying)
+			mediaHub && mediaHub.switchTrack(music);
 
 		// 循环查找播放列表并更新信息
 		for (let i = 0; i < musicList.length; i++) {
 			let j = musicInList(i, music);
-			if(j != -1) musicList[i].item[j] = music;
+			if (j !== -1) musicList[i].item[j] = music;
 		}
 	}
 
@@ -865,24 +826,22 @@ $(function() {
 
 	function listCopy(id, val) {
 		rem.customList = rem.customList || {
-			begin: musicList.length, 
-			length: 0, 
+			begin: musicList.length,
+			length: 0,
 			list: []
 		};
 		let begin = rem.customList.begin;
 		let end = begin + rem.customList.length;
 
 		let newList = {
-			name: val, 
-			cover: $("#music-cover").prop("src"), 
+			name: val,
+			cover: $("#music-cover").prop("src"),
 			my: 1
 		};
 		newList.item = Array.from(musicList[id].item);
 
-		if(rem.listDisplay == 1)
-			loadList(1);
-		if(rem.listPlaying == 1)
-			rem.listPlaying = end;
+		if (rem.listDisplay === 1) loadList(1);
+		if (rem.listPlaying === 1) rem.listPlaying = end;
 		rem.customList.length++;
 		rem.customList.list.splice(end, 1, newList);
 		musicList.splice(end, 0, newList);
@@ -905,7 +864,7 @@ $(function() {
 		let begin = rem.customList.begin;
 		let end = begin + rem.customList.length;
 		for(let i = begin; i < end; i++) {
-			if(musicList[i].id == id) {
+			if (musicList[i].id === id) {
 				msg("已删除 " + musicList[i].name);
 				musicList.splice(i, 1);
 				rem.customList.list.splice(i - begin, 1);
@@ -922,22 +881,22 @@ $(function() {
 	// 选择要显示哪个数据区
 	// 参数：要显示的数据区（list、sheet、player）
 	function dataBox(choice) {
-		if (choice == "list") {
+		if (choice === "list") {
 			if(!musicList[rem.listDisplay]) {
 				loadList(rem.listDisplay = config.defaultList, 1);
 				return;
 			}
 		}
 
-		if (rem.dataBox != choice) {
+		if (rem.dataBox !== choice) {
 			rem.dataBox = choice;
 
 			$('.btn-box .active').removeClass('active');
 
-			$("#play-list")[choice == "list" ? "fadeIn" : "fadeOut"](500);
-			$("#sheet")[choice == "sheet" ? "fadeIn" : "fadeOut"](500);
+			$("#play-list")[choice === "list" ? "fadeIn" : "fadeOut"](500);
+			$("#sheet")[choice === "sheet" ? "fadeIn" : "fadeOut"](500);
 			if($(window).width() <= 900)
-				$("#player")[choice == "player" ? "fadeIn" : "fadeOut"](500);
+				$("#player")[choice === "player" ? "fadeIn" : "fadeOut"](500);
 			else $("#player").show();
 		}
 
@@ -960,24 +919,24 @@ $(function() {
 	// 将当前歌曲加入播放历史
 	// 参数：要添加的音乐
 	function addHis(music) {
-		if (rem.listPlaying == 2) return true;
+		if (rem.listPlaying === 2) return true;
 		unRandom(2);
 
 		let mi = musicList[2].item;
 		// 限定播放历史最多
 		if (mi.length > config.historyMax) mi.length = config.historyMax;
 
-		if (music.id !== undefined && music.id !== '') {
+		if (music.id != null && music.id !== '') {
 			// 检查历史数据中是否有这首歌，如果有则提至前面
 			let i = musicInList(2, music);
-			if(i != -1)
+			if (i !== -1)
 				mi.splice(i, 1);
 		}
 
 		// 再放到第一位
 		mi.unshift(music);
 
-		if(rem.listDisplay == 2)
+		if (rem.listDisplay === 2)
 			loadList(2, 3);
 
 		dataStore('history', mi); // 保存播放历史列表
@@ -1007,7 +966,7 @@ $(function() {
 		}
 
 		let mpUser = dataRead("selfUser");
-		if (config.storageType == "local") {
+		if (config.storageType === "local") {
 			let playing = dataRead('playing');
 			if (playing) {
 				musicList[1].item = playing;
@@ -1026,7 +985,7 @@ $(function() {
 
 		if (config.defaultList >= musicList.length) config.defaultList = 1;
 		// 超出范围，显示正在播放列表
-		else if(config.defaultList == -1) {
+		else if (config.defaultList === -1) {
 			dataBox("sheet");
 			config.defaultList = 1;
 		}
@@ -1056,17 +1015,15 @@ $(function() {
 		// 登陆了，但歌单又没有，刷新歌单
 		if (uLog) ajaxUserList(uLog.id);
 
-		if(config.defaultList != -1)
-		var id = setInterval(function() {
-			if (!musicList[config.defaultList]._loading) {
-				loadList(config.defaultList);
+		if (config.defaultList !== -1)
+			var id = setInterval(() => {
+				if (!musicList[config.defaultList]._loading) {
+                    clearInterval(id);
 
-				if (config.autoplay) {
-					listClick(0);
+					loadList(config.defaultList);
+					if (config.autoplay) listClick(0);
 				}
-				clearInterval(id);
-			}
-		}, 200);
+			}, 200);
 
 		// 登陆条
 		$("#sheet").html(html + '<span id="sheet-bar"><div id="user-login" class="sheet-title-bar"></div></span>');
@@ -1103,58 +1060,51 @@ $(function() {
 		// 查找用户歌单起点
 		let s = 4;
 		for (; s < musicList.length; s++) {
-			if (musicList[s].creatorID == rem.netease.id) break;
+			if (musicList[s].creatorID === rem.netease.id) break;
 		}
 		let i = s;
 		for (; i < musicList.length; i++) {
-			if (musicList[i].creatorID != rem.netease.id) break; // 找到了就退出
+			if (musicList[i].creatorID !== rem.netease.id) break; // 找到了就退出
 		}
 
 		// 删除记忆数组
 		musicList.splice(s, i - s + 1);
 
-		if(flag)
-			delete rem.netease;
-		else
-			ajaxUserList(rem.netease.id);
+		if (flag) delete rem.netease;
+		else ajaxUserList(rem.netease.id);
 
 		loadSheets();
 
-		if(rem.listPlaying >= s)
-			if(rem.listPlaying < i)
-				rem.listPlaying = null;
-			else
-				rem.listPlaying--;
+		if (rem.listPlaying >= s)
+			if (rem.listPlaying < i) rem.listPlaying = null;
+			else rem.listPlaying--;
 	}
 
 	// 播放器本地存储信息
 	// 参数：键值、数据
 	function dataStore(key, data) {
-		if (config.storageType == "web" && (key == "playing" || key == "history" || key == "custom_list")) {
+		if (config.storageType === "web" && (key === "playing" || key === "history" || key === "custom_list")) {
 			ajaxSaveUserList(dataRead("selfUser", "null"), key, data);
 			return;
 		}
 		key = 'mkPlayer2_' + key;
-		// 存储，IE6~7 不支持HTML5本地存储
-		if (window.localStorage) {
-			if(data == null) {
-				localStorage.removeItem(key);
-				return;
-			}
-			data = JSON.stringify(data);
-			localStorage.setItem(key, data);
-		}
+
+        if(data == null) {
+            localStorage.removeItem(key);
+            return;
+        }
+        data = JSON.stringify(data);
+        localStorage.setItem(key, data);
 	}
 
 	// 播放器读取本地存储信息
 	// 参数：键值
 	// 返回：数据
 	function dataRead(key, def) {
-		if (!window.localStorage) return def;
 		key = 'mkPlayer2_' + key;
 		try {
-			return localStorage.getItem(key) !== null ? JSON.parse(localStorage.getItem(key)) : def;
-		} catch(e) {
+			return localStorage.getItem(key) != null ? JSON.parse(localStorage.getItem(key)) : def;
+		} catch (e) {
 			localStorage.removeItem(key);
 			return def;
 		}
@@ -1167,7 +1117,7 @@ $(function() {
 	function ajaxMPUserList(user) {
 		let id = $.dialog.loading('请求用户数据');
 
-		musicList[1]._loading = 
+		musicList[1]._loading =
 		musicList[2]._loading = true;
 
 		$.ajax({
@@ -1175,26 +1125,24 @@ $(function() {
 			url: config.api,
 			data: "types=userSong&type=get&user=" + user,
 			dataType: "json",
-			complete: function(xhr, st) {
-				id && id.close();
-			},
-			success: function(json) {
+			complete: () => id&&id.close(),
+			success: function (json) {
 				musicList[1].item = json.playing.push ? json.playing : [];
 				musicList[2].item = json.history.push ? json.history : [];
 				delete musicList[1]._loading;
 				delete musicList[2]._loading;
-				
-				if (rem.listDisplay == 1 || rem.listDisplay == 2)
+
+				if (rem.listDisplay === 1 || rem.listDisplay === 2)
 					loadList(rem.listDisplay);
-				if(rem.customList != null)
+				if (rem.customList != null)
 					musicList.splice(rem.customList.begin, rem.customList.length);
 				let ml = rem.customList = json.custom_list || null;
-				if(ml != null) {
+				if (ml != null) {
 					musicList.splice.apply(musicList, [ml.begin, 0].concat(ml.list));
 				}
 				loadSheets();
 			},
-			error: function(xhr, st, err) {
+			error: function (xhr, st, err) {
 				ajaxErr(xhr, st, err, '用户数据');
 			}
 		});
@@ -1202,7 +1150,7 @@ $(function() {
 
 	function ajaxSaveUserList(user, key, val) {
 		let data = {};
-		data.user = user, 
+		data.user = user,
 		data[key] = encodeURIComponent(JSON.stringify(val));
 
 		$.ajax({
@@ -1210,7 +1158,7 @@ $(function() {
 			url: config.api + "?types=userSong&type=save",
 			data: data,
 			dataType: "json",
-			error: function(xhr, st, err) {
+			error: function (xhr, st, err) {
 				ajaxErr(xhr, st, err, '自动保存');
 			}
 		});
@@ -1237,8 +1185,8 @@ $(function() {
 		}
 
 		let p = {
-			types: 'search', 
-			page: arr.page, 
+			types: 'search',
+			page: arr.page,
 			limit: config.perPage
 		};
 		switch (p.kind = arr.type||0) {
@@ -1272,12 +1220,12 @@ $(function() {
 			data: p,
 			dataType: "json",
 			complete: () => w.close(),
-			success: function(data) {
-				if (data.desc) $.dialog({content:$("<div>").text(data.desc)[0]});
+			success: function (data) {
+				if (data.desc) $.dialog({content: $("<div>").text(data.desc)[0]});
 
 				data = data.items;
 
-				if (arr.page == 1) {
+				if (arr.page === 1) {
 					if (!data.length) {
 						arr.end = true;
 						msg('没有找到相关歌曲').shake();
@@ -1301,22 +1249,22 @@ $(function() {
 				}
 
 				refreshList(); // 刷新列表，添加正在播放样式
-				addListbar((arr.end = data.length != config.perPage) ? "nomore" : "more");
+				addListbar((arr.end = data.length !== config.perPage) ? "nomore" : "more");
 				// 没加载满，说明已经加载完了
 
-				if (arr.page++ == 1) listToTop();
+				if (arr.page++ === 1) listToTop();
 				// 第一页就滚动到顶部
 			},
-			error: function(xhr, st, err) {
+			error: function (xhr, st, err) {
 				ajaxErr(xhr, st, err, '搜索');
 			}
 		});
 	}
 
 	function processSong(ti) {
-		if(typeof(ti.album) != "string") {
+		if (typeof (ti.album) !== "string") {
 			let pic = ti.album.pic;
-			if (pic&&!pic.includes("?")) pic += config.picSize;
+			if (pic && !pic.includes("?")) pic += config.picSize;
 			ti.pic = pic;
 			ti.pic_id = ti.album.pic_id;
 			ti.album_id = ti.album.id;
@@ -1332,13 +1280,13 @@ $(function() {
 			ti.artist_ids = arids;
 			ti.artist = ar;
 		} else if (ti.f) {
-			if (ti.f == 2) ti.lyric_id = ti.id;
+			if (ti.f === 2) ti.lyric_id = ti.id;
 			delete ti.f;
 
 			ti.source = "file";
-			ti.url = config.api+"?p="+ti.id+'&e='+ti.url;
+			ti.url = config.api + "?p=" + ti.id + '&e=' + ti.url;
 			if (ti.pic)
-				ti.pic = config.api+"?p="+ti.id+'&e='+ti.pic;
+				ti.pic = config.api + "?p=" + ti.id + '&e=' + ti.pic;
 			else
 				ti.pic = "err";
 		}
@@ -1352,7 +1300,7 @@ $(function() {
 		if (music.id == null) {
 			music.url = "err";
 			updateMinfo(music);
-			cb&&cb(music);
+			cb && cb(music);
 			return true;
 		}
 
@@ -1361,7 +1309,7 @@ $(function() {
 			url: config.api,
 			data: "types=url&id=" + music.id + "&source=" + music.source + (!cache ? "" : "&c=1") + "&cache=" + songName(music),
 			dataType: "json",
-			success: function(json) {
+			success: function (json) {
 				// 调试信息输出
 				if (!(music.url = json.url)) {
 					msg('链接获取失败!');
@@ -1369,10 +1317,10 @@ $(function() {
 				}
 
 				updateMinfo(music);
-				cb&&cb(music);
+				cb && cb(music);
 				return true;
 			},
-			error: function(xhr, st, err) {
+			error: function (xhr, st, err) {
 				ajaxErr(xhr, st, err, '歌曲链接');
 			}
 		});
@@ -1384,7 +1332,7 @@ $(function() {
 		if (music.pic_id == null) {
 			music.pic = "err";
 			updateMinfo(music);
-			cb&&cb(music);
+			cb && cb(music);
 			return true;
 		}
 
@@ -1393,14 +1341,14 @@ $(function() {
 			url: config.api,
 			data: "types=pic&id=" + music.pic_id + "&source=" + music.source + (!cache ? "" : "&c=1") + "&cache=" + songName(music),
 			dataType: "json",
-			success: function(json) {
-				music.pic = json.url||"err";
+			success: function (json) {
+				music.pic = json.url || "err";
 
 				updateMinfo(music);
-				cb&&cb(music);
+				cb && cb(music);
 				return true;
 			},
-			error: function(xhr, st, err) {
+			error: function (xhr, st, err) {
 				ajaxErr(xhr, st, err, '歌曲封面');
 			}
 		});
@@ -1417,19 +1365,21 @@ $(function() {
 		list._loading = true;
 
 		let id = musicList.indexOf(list);
-		$("#sheet .sheet$data-no='"+id+"' p").html('读取中...');
+		$("#sheet .sheet$data-no='" + id + "' p").html('读取中...');
 
 		$.ajax({
 			method: "POST",
 			url: config.api,
 			data: "types=playlist&id=" + list.id + "&source=" + (list.source || "netease"),
 			dataType: "json",
-			complete: function() { delete list._loading; },
-			success: function(json) {
+			complete: function () {
+				delete list._loading;
+			},
+			success: function (json) {
 				if (!json || json.charAt) {
 					console.log(json);
-					msg("歌单"+list.id+"读取失败").shake();
-					$("#sheet .sheet$data-no='"+id+"' p").html('<span style="color:#EA8383">读取失败</span>');
+					msg("歌单" + list.id + "读取失败").shake();
+					$("#sheet .sheet$data-no='" + id + "' p").html('<span style="color:#EA8383">读取失败</span>');
 					return;
 				}
 
@@ -1441,7 +1391,7 @@ $(function() {
 				list.item = [];
 
 				let tracks = json.items;
-				if (tracks&&tracks.length) {
+				if (tracks && tracks.length) {
 					// 处理并存储歌单中的音乐
 					list.item = tracks;
 					for (let i = 0; i < tracks.length; i++) {
@@ -1454,7 +1404,7 @@ $(function() {
 					let stored = dataRead('neteaseList'); // 读取本地记录的用户歌单
 					if (stored) { // 读取到了
 						for (let i = 0; i < stored.length; i++) { // 匹配歌单
-							if (stored[i].id == list.id) {
+							if (stored[i].id === list.id) {
 								stored[i] = list; // 保存歌单中的歌曲
 								dataStore('neteaseList', stored); // 保存
 								break;
@@ -1464,15 +1414,15 @@ $(function() {
 				}
 
 				delete list._loading;
-				cb&&cb(id, 1);
+				cb && cb(id, 1);
 
 				// 改变前端列表
-				$("#sheet .sheet$data-no='"+id+"' img").attr('src',list.cover); // 专辑封面
-				$("#sheet .sheet$data-no='"+id+"' p").html(list.name); // 专辑名字
+				$("#sheet .sheet$data-no='" + id + "' img").attr('src', list.cover); // 专辑封面
+				$("#sheet .sheet$data-no='" + id + "' p").html(list.name); // 专辑名字
 			},
-			error: function(xhr, st, err) {
+			error: function (xhr, st, err) {
 				ajaxErr(xhr, st, err, '歌单');
-				$(".sheet$data-no='"+id+"' p").html('<span style="color:#EA8383">读取失败</span>');
+				$(".sheet$data-no='" + id + "' p").html('<span style="color:#EA8383">读取失败</span>');
 			}
 		});
 	}
@@ -1481,7 +1431,7 @@ $(function() {
 	// 参数：音乐ID，回调函数
 	function ajaxLyric(music, cb) {
 		if (!music.lyric_id) {
-			cb&&cb('',music.lyric_id); // 没有歌词
+			cb && cb('', music.lyric_id); // 没有歌词
 			delete music.lyric_id;
 			return;
 		}
@@ -1489,36 +1439,37 @@ $(function() {
 		$.ajax({
 			method: "POST",
 			url: config.api,
-			data: "types=lyric&id="+music.lyric_id+"&source="+music.source+(cache?"&c=1":"") + "&cache="+songName(music),
+			data: "types=lyric&id=" + music.lyric_id + "&source=" + music.source + (cache ? "&c=1" : "") + "&cache=" + songName(music),
 			dataType: "json",
-			success: function(json) {
+			success: function (json) {
 				if (!cb) return;
 				// 回调函数
 				if (json.lyric) {
-					cb(json.lyric, music.lyric_id, json.tlyric||null);
+					cb(json.lyric, music.lyric_id, json.tlyric || null);
 				} else {
 					cb('', music.lyric_id);
 					delete music.lyric_id;
 				}
 			},
-			error: function(xhr, st, err) {
+			error: function (xhr, st, err) {
 				ajaxErr(xhr, st, err, '歌词');
-				cb(err,music.lyric_id,'err');
+				cb(err, music.lyric_id, 'err');
 			}
 		});
 	}
 
 	let forbidName = {"\\": 1, "/": 1, "?": 1, "*": 1, "\"": 1, ">": 1, "<": 1, "|": 1};
+
 	// 拼接歌曲名字
 	function songName(music, noEncode) {
-		let name = music.name + " - " + music.artist + (music.album == music.name ? "" : " - " + music.album);
+		let name = music.name + " - " + music.artist + (music.album === music.name ? "" : " - " + music.album);
 
-		if(name.length > 100) {
+		if (name.length > 100) {
 			name = name.substring(0, 100);
 		}
 
-		for(let i = 0; i < name.length; i++)
-			if(forbidName[name.charAt(i)]) {
+		for (let i = 0; i < name.length; i++)
+			if (forbidName[name.charAt(i)]) {
 				name = name.substring(0, i) + name.substring(i + 1);
 			}
 
@@ -1534,11 +1485,11 @@ $(function() {
 			url: config.api,
 			data: "types=userlist&uid=" + uid,
 			dataType: "json",
-			complete: function(xhr, st) {
+			complete: function (xhr, st) {
 				load.close();
 			},
-			success: function(json) {
-				if (json.code == "-1" || json.code == 400) {
+			success: function (json) {
+				if (json.code === "-1" || json.code === 400) {
 					msg('用户 uid 输入有误').shake();
 					return false;
 				}
@@ -1547,12 +1498,12 @@ $(function() {
 					msg('没找到用户 ' + uid + ' 的歌单').shake();
 					return false;
 				} else {
-					if(!pl[0].creator) {
+					if (!pl[0].creator) {
 						msg('不支持的用户数据 ' + pl[0].creator).shake();
 						return false;
 					}
 					rem.netease = {
-						id: uid, 
+						id: uid,
 						name: pl[0].creator.nickname
 					}
 
@@ -1571,7 +1522,7 @@ $(function() {
 							cover: p.coverImgUrl + "?param=300y300", // 列表封面
 							creatorID: uid, // 列表创建者id
 							creator: {
-								name: p.creator.nickname, 
+								name: p.creator.nickname,
 								head: p.creator.avatarUrl
 							},
 							item: []
@@ -1587,7 +1538,7 @@ $(function() {
 
 				console.debug("网易歌单获取成功", uid);
 			},
-			error: function(xhr, st, err) {
+			error: function (xhr, st, err) {
 				ajaxErr(xhr, st, err, '网易歌单');
 			}
 		});
@@ -1601,8 +1552,8 @@ $(function() {
 	let stopLyric = null;   // interval id
 	let lastScroll = 0;
 
-	lyricArea.on(rem.isMobile ? "click" : "dblclick", function(e) {
-		if(e.button && e.button != 0) return false;
+	lyricArea.on(rem.isMobile ? "click" : "dblclick", function (e) {
+		if (e.button && e.button !== 0) return false;
 
 		document.getSelection().empty();
 
@@ -1611,27 +1562,27 @@ $(function() {
 		rem.audio[0].currentTime = i;
 		refreshLyric(i);
 		return false;
-	}).on("wheel", function(e) {
-		stopLyric&&stopLyric();
+	}).on("wheel", function (e) {
+		stopLyric && stopLyric();
 		lastScroll = Date.now();
-	}, null, {passive:true});
+	}, null, {passive: true});
 
 	// 在歌词区显示提示语
 	function lyricTip(str) {
-		lyricArea.html("<li class='tip'>"+str+"</li>");
+		lyricArea.html("<li class='tip'>" + str + "</li>");
 	}
 
 	// 歌曲加载完后的回调函数
 	// 参数：歌词源文件
 	function lyricCallback(str, id, tlyric) {
-		stopLyric&&stopLyric();
+		stopLyric && stopLyric();
 
 		// 返回的歌词不是当前这首歌的
-		if (!rem.currentPlaying || id != rem.currentPlaying.lyric_id) {
+		if (!rem.currentPlaying || id !== rem.currentPlaying.lyric_id) {
 			return;
 		}
 
-		if (tlyric == 'err') {
+		if (tlyric === 'err') {
 			lyricTip('加载失败: ' + str);
 			return;
 		}
@@ -1642,10 +1593,10 @@ $(function() {
 			return false;
 		}
 
-		if(tlyric && (tlyric = parseLyric(tlyric)) && tlyric.length) {
+		if (tlyric && (tlyric = parseLyric(tlyric)) && tlyric.length) {
 			for (let lrc of tlyric) {
 				if (!lrc[1]) continue;
-				let id = binarySearch(lrc[0],str);
+				let id = binarySearch(lrc[0], str);
 				if (id < 0) {
 					id = -id - 1;
 					str.splice(id, 0, [lrc[0], "<null>", lrc[1]]);
@@ -1659,15 +1610,15 @@ $(function() {
 		}
 
 		// 221206 无语，还有人不按顺序排歌词
-		str.sort((a,b) => a[0]-b[0]);
+		str.sort((a, b) => a[0] - b[0]);
 
 		lastLyric = -1;
 
 		let html = "";
 		for (let k in str) {
 			let o = str[k];
-			o = o[1] + (o[2] ? "<span>"+o[2]+"</span>" : "");
-			html += "<li>" + (o||"&nbsp;") + "</li>";
+			o = o[1] + (o[2] ? "<span>" + o[2] + "</span>" : "");
+			html += "<li>" + (o || "&nbsp;") + "</li>";
 		}
 		lyricArea.html(html).scrollTop(0);
 	}
@@ -1684,11 +1635,11 @@ $(function() {
 	function scrollLyric(i) {
 		if (!rem.lyric) return false;
 
-		i = binarySearch(i,rem.lyric);
+		i = binarySearch(i, rem.lyric);
 		if (i < 0) i = -i - 2;
 		if (i < 0) return false;
 
-		if (lastLyric == i) return true; // 歌词没发生改变
+		if (lastLyric === i) return true; // 歌词没发生改变
 		lastLyric = i; // 记录方便下次使用
 
 		let h = lyricArea.find("li").removeClass("play").eq(i).addClass("play").height(); // 加上正在播放样式
@@ -1697,7 +1648,7 @@ $(function() {
 
 		let scroll = (h * (i + 1)) - (lyricArea.height() / 2);
 
-		stopLyric&&stopLyric();
+		stopLyric && stopLyric();
 		stopLyric = __animate(lyricArea, 'scrollTop', scroll, 700);
 
 		return true;
@@ -1734,17 +1685,17 @@ $(function() {
 			if (A = lyric.match(timeExpr)) {
 				B = lyric.replace(timeExpr, '');
 
-				for (let j = A.length-1; j >= 0; j--) {
+				for (let j = A.length - 1; j >= 0; j--) {
 					let t = timeExpr.exec(A[j]);
 					if (!t) continue;
 
-					let time = Number(t[1]) * 60 + Number(t[2].replace(":",".")) + off;
-					lrcObj.push([time,B]);
+					let time = Number(t[1]) * 60 + Number(t[2].replace(":", ".")) + off;
+					lrcObj.push([time, B]);
 				}
 			} else if (A = /\[(.+?):(.+?)](.*?)$/.exec(lyric)) {
-				if (A[0] == "offset") {
+				if (A[0] === "offset") {
 					off = Number(A[1]) / 1000;
-					if (off != off) off = 0;
+					if (off !== off) off = 0;
 				}
 			}
 		}
@@ -1753,33 +1704,35 @@ $(function() {
 	}
 
 	const T = Math.floor(1000 / 60);
-	let requestAnimationFrame = window.requestAnimationFrame||(function(cb) {
+	let requestAnimationFrame = window.requestAnimationFrame || (function (cb) {
 		setTimeout(cb, T);
 	});
 
 	function __animate(elm, prop, to, time) {
 		let v = elm[prop]();
 		let step = (to - elm[prop]()) / (time / T);
-		if(Math.abs(step) < 1)
+		if (Math.abs(step) < 1)
 			step = Math.sign(step) || 1;
 		let sig = Math.sign(step);
 
-		let fn = function() {
-			if(Math.sign(to-v) != sig || v == to) {
+		let fn = function () {
+			if (Math.sign(to - v) !== sig || v === to) {
 				elm[prop](to);
 				return;
 			}
-			elm[prop](v+=step);
-			fn&&requestAnimationFrame(fn);
+			elm[prop](v += step);
+			fn && requestAnimationFrame(fn);
 		};
 		fn();
 
-		return function() { fn = null; };
+		return function () {
+			fn = null;
+		};
 	}
 
-	Object.prototype.compareTo = function(b) {
-		if (this<b) return -1;
-		if (this>b) return 1;
+	Object.prototype.compareTo = function (b) {
+		if (this < b) return -1;
+		if (this > b) return 1;
 		return 0;
 	};
 	$.callOnly(Object.prototype, ["compareTo"]);
@@ -1800,123 +1753,125 @@ $(function() {
 	rem.order = dataRead("order", 2);
 
 	rem.audio = $('<audio>')/*.attr("crossOrigin", "anonymous")*/.appendTo('body')
-	.on("timeupdate", function(a) {
-		a=a.target;
+		.on("timeupdate", function (a) {
+			a = a.target;
 
-		// 暂停
-		if (rem.paused !== false) return;
+			// 暂停
+			if (rem.paused !== false) return;
 
-		//AB复读
-		if (rem.repeatB!=null && a.currentTime >= rem.repeatB) {
-			a.currentTime = rem.repeatA||0;
-		}
-
-		let sec = Date.now();
-
-		let last = lastProgress;
-		// 2021 / 1 / 23 降低CPU占用率
-		if (sec - last > 200) {
-			mediaHub&&mediaHub.updatePos();
-
-			lastProgress = sec;
-
-			// 同步进度条
-			let pc = a.currentTime / a.duration;
-			rem.audio.bar.goto(pc, true);
-
-			if((rem.order == 0 || rem.order == 2 || rem.listPlaying == 3) && 
-			pc > config.preloadPercent && rem.prefetch.cacheId != rem.idPlaying) {
-				rem.prefetch[0].muted = true;
-
-				let music = musicList[rem.listPlaying].item[rem.idPlaying + 1];
-				if(music) {
-					function noUrl() {
-						ajaxUrl(music, function(music) {
-							rem.prefetch.attr("src", music.url);
-						});
-					}
-					if(music.url)
-					rem.prefetch.attr("src", music.url)[0].play().then(function() {
-						try {
-							rem.prefetch[0].playbackRate = 16;
-						} catch (e) {}
-					}, noUrl);
-					else noUrl();
-					rem.prefetch.cacheId = rem.idPlaying;
-				} else
-					rem.prefetch.cacheId = -1;
+			//AB复读
+			if (rem.repeatB != null && a.currentTime >= rem.repeatB) {
+				a.currentTime = rem.repeatA || 0;
 			}
-		}
-		// 同步歌词显示
-		scrollLyric(a.currentTime);
-	}).on("play", function() {
-		mediaHub&&mediaHub.pause(0);
-		rem.paused = false;
-		refreshList(); // 刷新状态，显示播放的波浪
-		$(".btn-play").addClass("state"); // 显示暂停的图片
 
-		$("#sheet .sheet$data-no=" + rem.listPlaying).addClass("playing");
+			let sec = Date.now();
 
-		if ((config.dotShine & 1) != 0 || (rem.isMobile && (config.dotShine & 2) != 0)) {
-			$("#music-progress .dot").addClass("move");
-		}
+			let last = lastProgress;
+			// 2021 / 1 / 23 降低CPU占用率
+			if (sec - last > 200) {
+				mediaHub && mediaHub.updatePos();
 
-		let music = rem.currentPlaying || {};
-		document.title = music.name + " - " + music.artist + " | " + rem.webTitle;
-	}).on("pause", function() {
-		mediaHub&&mediaHub.pause(1);
-		rem.paused = true;
-		$(".playing").removeClass("playing"); // 移除正在播放
-		$(".btn-play").removeClass("state");
-		$("#music-progress .move").removeClass("move"); // 小点闪烁效果
+				lastProgress = sec;
 
-		document.title = rem.webTitle;
-	}).on("ended", function() {
-		if (rem.errCount > 1) { // 连续播放失败
-			return;
-		}
+				// 同步进度条
+				let pc = a.currentTime / a.duration;
+				rem.audio.bar.goto(pc, true);
 
-		//AB复读 part2
-		if (rem.repeatA!=null&&rem.repeatB==null) {
-			this.currentTime = rem.repeatA;
-			this.play();
-			return;
-		}
-		
-		if (rem.order === 1) {
-		} else if(rem.listPlaying != 0 || config.autoPlaySearch) { // 搜索结果不自动播放
-			if((rem.listPlaying != 3 && rem.order != 0) || rem.idPlaying != musicList[rem.listPlaying].item.length - 1) {
-				nextMusic();
+				if ((rem.order === 0 || rem.order === 2 || rem.listPlaying === 3) &&
+					pc > config.preloadPercent && rem.prefetch.cacheId !== rem.idPlaying) {
+					rem.prefetch[0].muted = true;
+
+					let music = musicList[rem.listPlaying].item[rem.idPlaying + 1];
+					if (music) {
+						function noUrl() {
+							ajaxUrl(music, function (music) {
+								rem.prefetch.attr("src", music.url);
+							});
+						}
+
+						if (music.url)
+							rem.prefetch.attr("src", music.url)[0].play().then(function () {
+								try {
+									rem.prefetch[0].playbackRate = 16;
+								} catch (e) {
+								}
+							}, noUrl);
+						else noUrl();
+						rem.prefetch.cacheId = rem.idPlaying;
+					} else
+						rem.prefetch.cacheId = -1;
+				}
+			}
+			// 同步歌词显示
+			scrollLyric(a.currentTime);
+		}).on("play", function () {
+			mediaHub && mediaHub.pause(0);
+			rem.paused = false;
+			refreshList(); // 刷新状态，显示播放的波浪
+			$(".btn-play").addClass("state"); // 显示暂停的图片
+
+			$("#sheet .sheet$data-no=" + rem.listPlaying).addClass("playing");
+
+			if ((config.dotShine & 1) !== 0 || (rem.isMobile && (config.dotShine & 2) !== 0)) {
+				$("#music-progress .dot").addClass("move");
+			}
+
+			let music = rem.currentPlaying || {};
+			document.title = music.name + " - " + music.artist + " | " + rem.webTitle;
+		}).on("pause", function () {
+			mediaHub && mediaHub.pause(1);
+			rem.paused = true;
+			$(".playing").removeClass("playing"); // 移除正在播放
+			$(".btn-play").removeClass("state");
+			$("#music-progress .move").removeClass("move"); // 小点闪烁效果
+
+			document.title = rem.webTitle;
+		}).on("ended", function () {
+			if (rem.errCount > 1) { // 连续播放失败
 				return;
 			}
-		}
-	}).on("canplay", function() {
-		$("#music-progress").removeClass("loading");
-	}).on("seeking", function() { // 跳位置了
-		$("#music-progress").addClass("loading");
-	}).on('error', audioErr); // 播放器错误处理
 
-	if(config.showBuffer) {
-		rem.bufferUpdater = setInterval(function() {
+			//AB复读 part2
+			if (rem.repeatA != null && rem.repeatB == null) {
+				this.currentTime = rem.repeatA;
+				this.play();
+				return;
+			}
+
+			if (rem.order === 1) {
+			} else if (rem.listPlaying !== 0 || config.autoPlaySearch) { // 搜索结果不自动播放
+				if ((rem.listPlaying !== 3 && rem.order !== 0) || rem.idPlaying !== musicList[rem.listPlaying].item.length - 1) {
+					nextMusic();
+
+				}
+			}
+		}).on("canplay", function () {
+			$("#music-progress").removeClass("loading");
+		}).on("seeking", function () { // 跳位置了
+			$("#music-progress").addClass("loading");
+		}).on('error', audioErr); // 播放器错误处理
+
+	if (config.showBuffer) {
+		rem.bufferUpdater = setInterval(function () {
 			let ado = rem.audio[0];
-			if(!ado.src) return;
+			if (!ado.src) return;
 			let tr = ado.buffered;
 			let elms = $("#music-progress .load");
-			if(elms.length > tr.length) {
-				for(let i = elms.length - 1; i >= tr.length; i--)
+			if (elms.length > tr.length) {
+				for (let i = elms.length - 1; i >= tr.length; i--)
 					elms[i].remove();
 				elms = $("#music-progress .load");
-			} else if(elms.length < tr.length) {
+			} else if (elms.length < tr.length) {
 				let mp = $("#music-progress");
-				for(let i = elms.length; i < tr.length; i++)
+				for (let i = elms.length; i < tr.length; i++)
 					mp.append($("<div class='bar load'></div>"));
 				elms = $("#music-progress .load");
 			}
-			if(!tr.length) return;
+			if (!tr.length) return;
 			let tot = ado.duration;
-			for(let i = 0; i < tr.length; i++) {
+			for (let i = 0; i < tr.length; i++) {
 				let s = tr.start(i), e = tr.end(i);
-				elms.eq(i).css({left: (100 * s / tot)  + "%", width: (100 * (e - s) / tot) + "%"});
+				elms.eq(i).css({left: (100 * s / tot) + "%", width: (100 * (e - s) / tot) + "%"});
 			}
 		}, 333);
 	}
@@ -1931,22 +1886,22 @@ $(function() {
 	// 应用初始音量
 	rem.audio[0].volume = vol;
 
-	rem.audio.volume = new mkpgb("#volume-progress", vol, (val) => {
+	rem.audio.volume = new MkProgressBar("#volume-progress", vol, (val) => {
 		rem.audio[0].volume = val;
 		$(".btn-quiet").removeClass('state');
 		dataStore("muted");
 		dataStore('volume', val);
-		$.dialog({id:"Vol",title:!1,cancel:!1,content:(val*100)+"%",time:1e3,skin:"d-dark-msg"});
+		$.dialog({id: "Vol", title: !1, cancel: !1, content: (val * 100) + "%", time: 1e3, skin: "d-dark-msg"});
 	}, 5);
 
 	// 静音按钮点击事件
-	$(".btn-quiet").on("click", function(e) {
+	$(".btn-quiet").on("click", function (e) {
 		let muted = $(e.target).toggleClass('state').hasClass('state');
 		dataStore('muted', rem.audio[0].muted = muted ? 1 : null);
 	});
 
 	// 初始化播放进度条
-	(rem.audio.bar = new mkpgb("#music-progress", 0, function(val) {
+	(rem.audio.bar = new MkProgressBar("#music-progress", 0, function (val) {
 		let newTime = rem.audio[0].duration * val;
 		rem.audio[0].currentTime = newTime;
 		refreshLyric(newTime);
@@ -1954,15 +1909,15 @@ $(function() {
 
 	updateOrder();
 
-	if(false === dataRead('volume')) {
+	if (false === dataRead('volume')) {
 		$.dialog('输入 <span style="color:red;">..</span> 打开高级菜单').time(8000);
 	}
 
 	var tRight = 0;
 
 	let dot = false;
-	$(document)
-	.on("keyup", function(e) {
+    $(document)
+	.on("keyup", function (e) {
 		switch (e.key.toLowerCase()) {
 			case 'arrowright':
 				if (tRight > 0) {
@@ -1976,8 +1931,8 @@ $(function() {
 				break;
 		}
 	})
-	.on("keydown", function(e) {
-		if (e.target.nodeName == "INPUT") return;
+	.on("keydown", function (e) {
+		if (e.target.nodeName === "INPUT") return;
 		switch (e.key.toLowerCase()) {
 			case '{':
 				if (e.repeat) return;
@@ -2027,7 +1982,8 @@ $(function() {
 				return;
 			case 'arrowleft':
 				if (e.repeat) return;
-				nextMusic(-1); return;
+				nextMusic(-1);
+				return;
 			case 'arrowright':
 				if (e.repeat) return;
 				tRight = setTimeout(() => {
@@ -2036,7 +1992,7 @@ $(function() {
 					tRight = -1;
 				}, 500);
 				return;
-			case 'arrowup': 
+			case 'arrowup':
 				rem.audio.volume.goto(rem.audio[0].volume + 0.1);
 				F_DOM.stopEvent(e);
 				return;
@@ -2053,12 +2009,12 @@ $(function() {
 				if (e.repeat) return;
 				cylOrder();
 				return;
-			default: 
+			default:
 				dot = false;
 				return;
 			case '.':
 				if (!dot) {
-					dot=true;
+					dot = true;
 					return;
 				}
 		}
@@ -2071,25 +2027,21 @@ $(function() {
 		<span class="info-btn 6">触屏模式</span>&nbsp;&nbsp;\
 		<span class="info-btn 7">定时播放</span>&nbsp;&nbsp;<br/>\
 		<span class="info-btn 8">按歌手整理列表</span>&nbsp;&nbsp;\
-		<span class="info-btn 9">按专辑整理列表</span>')
-		.delegate("click", "span", function(e) {
-			switch(e.target.classList[1]) {
-				case '1':
-					stop();
-				break;
+	<span class="info-btn 9">按专辑整理列表</span>')
+		.delegate("click", "span", function (e) {
+			switch (e.target.classList[1]) {
+				case '1': stop(); break;
 				case '2':
-					for(let i = 0; i < musicList.length; i++) {
+					for (let i = 0; i < musicList.length; i++) {
 						let ml = musicList[i].item;
-						for(let j = 0; j < ml.length; j++) {
+						for (let j = 0; j < ml.length; j++) {
 							ml[j].pic = "";
 							ml[j].url = "";
 						}
 					}
 					msg("OK");
 				break;
-				case '3':
-					loadList(3);
-				break;
+				case '3': loadList(3); break;
 				case '4':
 					musicList[rem.listDisplay].item.sort(pysorter((a) => a.name));
 					loadList(rem.listDisplay);
@@ -2101,11 +2053,11 @@ $(function() {
 						title: "正在播放导出/导入",
 						content: elm[0],
 						button: [{
-							id: "ok", 
-							value: '导入', 
-							callback: function() {
+							id: "ok",
+							value: '导入',
+							callback: function () {
 								unRandom(1);
-								if (rem.listPlaying == 1) {
+								if (rem.listPlaying === 1) {
 									stop();
 								}
 								try {
@@ -2119,40 +2071,37 @@ $(function() {
 					});
 				break;
 				case '6':
-					if(localStorage) {
-						let mb = localStorage.getItem("mobile");
-						localStorage[mb == null ? 'setItem' : 'removeItem']("mobile", 1);
-						msg(mb == null ? "已开" : "已关");
-						setTimeout(function() { location.href = location.href; }, 1000);
-					}
+                    let mb = localStorage.getItem("mobile");
+                    localStorage[mb == null ? 'setItem' : 'removeItem']("mobile", 1);
+                    msg(mb == null ? "已开" : "已关");
+                    setTimeout(function() { location.href = location.href; }, 1000);
 				break;
 				case '7':
-				if(rem.delay) {
-					clearTimeout(rem.delay);
-					delete rem.delay;
-					msg("已清除");
-				} else {
-					let dlg = $.dialog.prompt('When? eg 14:00:00.000', function(val) {
-						if(!val.length)
-							return false;
-						val = val.split(':');
-						if(val.length != 3)
-							return dlg.shake(), false;
-						let dt = new Date();
-						dt.setHours(val[0]);
-						dt.setMinutes(val[1]);
-						val = val[2].split('.');
-						dt.setSeconds(val[0]);
-						dt.setMilliseconds(val.length > 1 ? val[1] : 0);
-						dt = dt.getTime() - Date.now();
-						if(dt <= 0)
-							return console.log(dt), dlg.shake(), false;
+					if (rem.delay) {
+						clearTimeout(rem.delay);
+						delete rem.delay;
+						msg("已清除");
+					} else {
+						$.dialog.prompt('When? eg 14:00:00.000', function (val) {
+							val = val.split(':');
+							if (val.length < 2) return !this.shake(); // just false
 
-						rem.delay = setTimeout(function () {
-							pause();
-							delete rem.delay;
-						}, dt);
-					});
+							let time = new Date();
+							time.setHours(val[0]);
+							val[1]&&time.setMinutes(val[1]);
+                            if (val[2]) {
+                                val = val[2].split('.');
+                                time.setSeconds(val[0]);
+                                time.setMilliseconds(val[1]||0);
+                            }
+							let dt = time.getTime() - Date.now();
+							if (dt <= 0) return !this.shake();
+
+                            rem.delay = setTimeout(function () {
+                                pause();
+                                delete rem.delay;
+                            }, dt);
+                        });
 				}
 				break;
 				case '8':
@@ -2202,40 +2151,44 @@ $(function() {
 	});
 
 	// 歌曲右键菜单
-	$("#song_menu").delegateChild("mousedown", "li", function(e, index) {
+	$("#song_menu").delegateChild("mousedown", "li", function (e, index) {
 		let music = musicList[rem.listDisplay].item[rem.menuClick];
-		switch(index = index()) {
+		switch (index = index()) {
 			case 0:
-				function cb(music) {
-					if (music.url == 'err' || music.url == "" || music.url == null) {
-						msg('这首歌不支持下载').shake();
-						return;
-					}
-					// ...
-					let a = $('<a>').attr({"target": "_blank", "download": songName(music, 1) + ".mp3", "href": music.url}).appendTo("body");
-					// 同源请求
-					if(a[0].origin == location.origin) {
-						a[0].click();
-						a.remove();
-					} else {
-						$.ajax({
-							url: music.url, 
-							responseType: "blob", 
-							success: function(blob, st) {
-								a[0].href = window.URL.createObjectURL(blob);
-								a[0].click();
-								a.remove();
-							}
-						});
-					}
+
+			function cb(music) {
+				if (music.url === 'err' || music.url === "" || music.url == null) {
+					msg('这首歌不支持下载').shake();
+					return;
 				}
-				if(music == rem.currentPlaying)
-					cb(music);
-				else
-					ajaxUrl(music, cb);
-			break;
+				// ...
+				let a = $('<a>').attr({
+					"target": "_blank",
+					"download": songName(music, 1) + ".mp3",
+					"href": music.url
+				}).appendTo("body");
+				// 同源请求
+				if (a[0].origin === location.origin) {
+					a[0].click();
+					a.remove();
+				} else {
+					$.ajax({
+						url: music.url,
+						responseType: "blob",
+						success: function (blob, st) {
+							a[0].href = window.URL.createObjectURL(blob);
+							a[0].click();
+							a.remove();
+						}
+					});
+				}
+			}
+
+				if (music === rem.currentPlaying) cb(music);
+				else ajaxUrl(music, cb);
+				break;
 			case 1: // 离线
-				if(music.source == "file") {
+				if (music.source === "file") {
 					msg("本地歌曲, 无需离线");
 					break;
 				}
@@ -2248,21 +2201,18 @@ $(function() {
 				ajaxPic(music);
 				cache = oc;
 				msg("离线完成");
-			break;
-			case 2:
-			case 3:
+				break;
+			case 2:case 3:
 				rem.search = {
 					wd: rem.currentPlaying,
 					type: index-1
 				};
 				ajaxSearch();
-			break;
-			case 4:
-				musicInfo(musicList[rem.listDisplay], rem.menuClick);
-			break;
+				break;
+			case 4:musicInfo(musicList[rem.listDisplay], rem.menuClick);break;
 			case 5:
-				$.confirm("确认删除 ", function() {
-					if (music.source == "file") {
+				$.confirm("确认删除 ", function () {
+					if (music.source === "file") {
 						$.ajax({
 							method: "POST",
 							url: config.api,
@@ -2272,12 +2222,12 @@ $(function() {
 					}
 					removeOne(rem.menuClick);
 				});
-			break;
+				break;
 		}
 	});
 
 	rem.menu = document.createElement("div");
-	$(rem.menu).addClass("list-menu").html('<span class="list-icon icon-play" title="下一首播放"></span><span class="list-icon icon-add" title="加入正在播放"></span><span class="list-icon icon-del" title="删除"></span>').delegate("click", ".list-icon", function(e) {
+	$(rem.menu).addClass("list-menu").html('<span class="list-icon icon-play" title="下一首播放"></span><span class="list-icon icon-add" title="加入正在播放"></span><span class="list-icon icon-del" title="删除"></span>').delegate("click", ".list-icon", function (e) {
 		let num = parseInt($(e.path[3]).child(0).text()) - 1;
 		if (isNaN(num)) return false;
 
@@ -2290,11 +2240,10 @@ $(function() {
 					removeList(musicInList(1, musicList[rem.listDisplay].item[num]), 1);
 					msg('已删除');
 				}
-				// listClick(num);
 				break;
 			case "icon-play":
 				let m3 = musicList[3].item;
-				if(rem.listPlaying != 3) {
+				if (rem.listPlaying !== 3) {
 					rem.listPlaying = 3;
 					delete rem.prefetch.cacheId;
 					rem.idPlaying = -1;
@@ -2308,36 +2257,32 @@ $(function() {
 
 				let msc = musicList[rem.listDisplay].item[num];
 				let i = musicInList(3, msc);
-				if(i != -1) {
+				if (i !== -1) {
 					msg('已存在! 还有 ' + (i - rem.idPlaying) + " 首");
 					return;
 				}
 
 				if(m3.length >= config.nextListMax) {
-					msg('队列已满(' +  config.nextListMax + ')!');
+					msg('队列已满('+config.nextListMax+')!');
 					return;
 				}
-				msg("排队中，还有 " + (musicList[3].item.push(msc) - 1 - rem.idPlaying) + " 首");
+				msg("排队中，还有 "+(musicList[3].item.push(msc)-1-rem.idPlaying)+" 首");
 				break;
-			case "icon-del":
-				removeList(num, rem.listDisplay);
-				break;
-			case "icon-pause":
-				pause();
-			break;
+			case "icon-del":removeList(num, rem.listDisplay);break;
+			case "icon-pause":pause();break;
 		}
 		return true;
 	});
 
 	function listMenuHandler(e) {
-		if((e != null) == rem.menu.isConnected) return;
+		if ((e != null) === rem.menu.isConnected) return;
 
 		let num = parseInt(this.child(0).text()) - 1;
 		if (isNaN(num)) return false;
 
 		let c = rem.menu.children, ls = rem.listDisplay;
-		$(c[0])[ls != 3 && rem.currentPlaying ? 'show' : 'hide']();
-		$(c[1])[ls != 1 ? 'show' : 'hide']().removeClass("added").attr("title", "加入正在播放")['if'](musicInList(1, musicList[rem.listDisplay].item[num]) != -1).addClass("added").attr("title", "从正在播放删除");
+		$(c[0])[ls !== 3 && rem.currentPlaying ? 'show' : 'hide']();
+		$(c[1])[ls !== 1 ? 'show' : 'hide']().removeClass("added").attr("title", "加入正在播放")['if'](musicInList(1, musicList[rem.listDisplay].item[num]) !== -1).addClass("added").attr("title", "从正在播放删除");
 		$(c[2])[(ls >= 1 && ls <= 3 || musicList[ls].my) ? 'show' : 'hide']();
 
 		this.find(".name").append(rem.menu);
@@ -2367,7 +2312,7 @@ $(function() {
 	// 点击加载更多
 	.delegate("click", ".list.clickable", function() {
 		if(this.hasClass("list-loadmore")) {
-			if(rem.listDisplay == 0) {
+			if(rem.listDisplay === 0) {
 				this.removeClass('list-loadmore').html('加载中...');
 				ajaxSearch();
 			}
@@ -2377,10 +2322,10 @@ $(function() {
 				// 清空当前显示的列表
 				musicList[rem.listDisplay].item.length = 0;
 				// 清空内容
-				if (rem.listDisplay == 1) {
+				if (rem.listDisplay === 1) {
 					dataStore('playing', '');
 					$("#sheet .sheet(0) img").attr('src', 'images/player_cover.png');
-				} else if (rem.listDisplay == 2) {
+				} else if (rem.listDisplay === 2) {
 					dataStore('history', '');
 				} else {
 					dataStore('custom_list', rem.customList);
@@ -2447,10 +2392,9 @@ $(function() {
 
 	$(window).on("mousedown", function(e) {
 		$(".my_submenu").hide();
-		if(e.button != 0) return;
-		if(rem.menuEditing && 
-			e.target != rem.menuEditing[0]) {
-				rem.menuEditing.on("change");
+		if(e.button !== 0) return;
+		if(rem.menuEditing && e.target !== rem.menuEditing[0]) {
+            rem.menuEditing.on("change");
 		}
 	});
 
@@ -2500,7 +2444,7 @@ $(function() {
 				loadSheets();
 
 				if(rem.listPlaying >= i)
-					if(rem.listPlaying == i)
+					if(rem.listPlaying === i)
 						rem.listPlaying = null;
 					else
 						rem.listPlaying--;
@@ -2573,7 +2517,7 @@ $(function() {
 	});
 
 	$(".float-btn(0)").on("click", function() {
-		if (rem.currentPlaying == undefined) {
+		if (rem.currentPlaying == null) {
 			msg('请先播放歌曲').shake();
 			return false;
 		}
@@ -2582,19 +2526,19 @@ $(function() {
 	});
 
 	$(".float-btn(1)").on("click", function() {
-		if (rem.currentPlaying == undefined) {
+		if (rem.currentPlaying == null) {
 			msg('请先播放歌曲').shake();
 			return false;
 		}
 
 		$.dialog({
 			id: "MSpd",
-			content: '<input type="text" id="mspeed" placeholder="0.1 - 8">', 
+			content: '<input type="text" id="mspeed" placeholder="0.1 - 8">',
 			title: "速度选择",
-			okValue: '应用', 
+			okValue: '应用',
 			ok: function() {
 				let spd = parseFloat($("#mspeed").val());
-				if (spd != spd || spd > 8 || spd < 0.1) {
+				if (spd !== spd || spd > 8 || spd < 0.1) {
 					msg("输入无效").shake();
 					return false;
 				}
@@ -2630,7 +2574,7 @@ $(function() {
 	});
 
 	$(".lyric").on("contextmenu", function(e) {
-		if (e.target.nodeName == "DIV") return;
+		if (e.target.nodeName === "DIV") return;
 
 		F_DOM.stopEvent(e);
 		$('.container').toggleClass("lyric-mode");
