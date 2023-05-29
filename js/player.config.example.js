@@ -7,33 +7,31 @@
 
 // 获取 歌曲ID 的方法：
 // 先在下面开启logMusicId，然后按 F12 打开浏览器的控制台，播放歌曲。
-// 获取 网易云歌单ID 的方法：
-// 按 F12 打开浏览器的控制台，输入musicList
 
 "use strict";
 
 // 播放器功能配置
 var mkPlayer = {
-	api: "api.php",            // api地址
-	perPage: 20,               // 搜索结果一次加载多少条
-	defaultList: -1,           // 默认播放列表编号, -1则显示[播放列表]
-	logMusicId: false,         // 控制台记录歌曲ID
-	autoplay: false,           // 自动播放 *此选项在现代浏览器可能无效
-	mobileBg: false,           // 移动端封面背景
-	dotShine: 0,               // 进度条的小点闪动 (1:电脑端, 2:移动端)
-	volume: 0.5,               // 默认音量值 0~1
-	version: "23/05/18-3.1.9",
-	autoAddToPlaying: false,   // 自动把播放的歌曲加入正在播放
-	replacePlayList: false,    // 若正在播放为空，用第一个播放的歌单替换正在播放
-	historyMax: 100,           // 历史记录最大长度
-	storageType: "web",        // 播放列表存放位置 local, web
-	picSize: "?param=300y300", // 图片大小
-	autoShowLogin: false,      // 自动弹出登录窗口
-	autoPlaySearch: false,     // 搜索结果自动播放
-	nextListMax: 99,           // 下一首播放最大大小
-	preloadPercent: 0.9,       // 这一首播放到多少时预加载下一首, 大于1禁用
-	customClear: false,        // 允许清空自定义列表
-	showBuffer: false          // 显示缓冲状态
+	api: "api.php",				// api地址
+	perPage: 20,				// 搜索结果一次加载多少条
+	defaultList: 1,				// 默认播放列表编号, -1则显示[播放列表]
+	logMusicId: false,			// 控制台记录歌曲ID
+	autoplay: false,			// 自动播放 *此选项在现代浏览器可能无效
+	mobileBg: false, 			// 移动端封面背景
+	dotShine: 0,				// 进度条的小点闪动 (1:电脑端, 2:移动端)
+	volume: 0.3,				// 默认音量值 0~1
+	version: "23/05/29-3.2.0",
+	autoAddToPlaying: false,	// 自动把播放的歌曲加入正在播放
+	replacePlayList: true, 		// 若正在播放为空，用第一个播放的歌单替换正在播放
+	historyMax: 50,				// 历史记录最大长度
+	storageType: "web",			// 播放列表存放位置 local, web
+	picSize: "?param=300y300",	// 图片大小
+	autoShowLogin: false,		// 自动弹出登录窗口
+	autoPlaySearch: true,		// 搜索结果自动播放
+	nextListMax: 99,			// 下一首播放最大大小
+	preloadPercent: 0.9,		// 这一首播放到多少时预加载下一首, 大于1禁用
+	customClear: false,			// 允许清空自定义列表
+	showBuffer: false			// 显示缓冲状态
 };
 
 console.info('EMP ' + mkPlayer.version + ' by Roj234\nInspired from MKOnlinePlayer(discontinued) @ mengkun(https://mkblog.cn)');

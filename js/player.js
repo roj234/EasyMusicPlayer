@@ -164,24 +164,25 @@ $(function() {
 		if (rem.paused === false) { // 之前是播放状态
 			rem.audio[0].pause(); // 暂停
 		} else {
-			if (!rem.currentPlaying) return;
 			// 第一次点播放
 			if (rem.listPlaying == null) {
-				if (musicList[1].item.length == 0) {
-					if(config.replacePlayList) {
+				if (!musicList[1].item.length) {
+					if(config.replacePlayList && musicList[rem.listDisplay]?.item.length) {
 						musicList[1].item = Array.from(musicList[rem.listDisplay].item);
-						// 正在播放已发生变更，进行保存
+
+						// 保存
 						dataStore('playing', musicList[1].item);
 					} else {
 						msg("没有歌曲可以播放!").shake();
 						return;
 					}
-				} else {
-					rem.listPlaying = rem.listDisplay = 1;
-					playList(0);
 				}
-			} else
+				rem.listPlaying = 1;
+				playList(0);
+				return;
+			}
 
+			if (!rem.currentPlaying) return;
 			rem.audio[0].play().then(function() {
 				rem.errCount = -1;
 			}, audioErr);
@@ -245,6 +246,8 @@ $(function() {
 		// 排除下一首播放
 		if (rem.order == 3 && rem.listPlaying != 3) {
 			let list = musicList[rem.listPlaying];
+			if (!list) return;
+
 			if (rem.rndListId !== rem.listPlaying) {
 				unRandom();
 
@@ -957,8 +960,8 @@ $(function() {
 	// 将当前歌曲加入播放历史
 	// 参数：要添加的音乐
 	function addHis(music) {
-		unRandom(2);
 		if (rem.listPlaying == 2) return true;
+		unRandom(2);
 
 		let mi = musicList[2].item;
 		// 限定播放历史最多
