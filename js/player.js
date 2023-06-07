@@ -768,8 +768,8 @@ $(function () {
 
     function markListChanged(id=rem.listDisplay) {
         let list = musicList[id];
-        if (id === 1) dataStore('playing', list);
-        else if (id === 2) dataStore('history', list);
+        if (id === 1) dataStore('playing', list.item);
+        else if (id === 2) dataStore('history', list.item);
         else if (list?.my) dataStore('custom_list', rem.customList);
     }
 
@@ -1399,6 +1399,8 @@ $(function () {
 					}
 				}
 
+				delete list._loading;
+
 				if (rem.netease && list.creatorID === rem.netease.id) {
 					// 是当前登录用户的歌单，要保存到缓存中
 					let stored = dataRead('neteaseList'); // 读取本地记录的用户歌单
@@ -1413,7 +1415,6 @@ $(function () {
 					}
 				}
 
-				delete list._loading;
 				cb && cb(id, 1);
 
 				// 改变前端列表

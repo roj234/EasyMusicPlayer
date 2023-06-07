@@ -21,7 +21,7 @@ mkPlayer.plugin("WebAudio-DSP", function() {
 		}
 
 		destroy() {
-			this.node.disconnect();
+			this.node?.disconnect();
 		}
 
 		requestDraw(pcm) {
@@ -38,17 +38,23 @@ mkPlayer.plugin("WebAudio-DSP", function() {
 	}
 
 	class WaveVisualizer extends SoundVisualizer {
-		constructor(ctx, c) {
+		constructor(ctx, c, userms) {
 			super(c);
 
-			var that = this;
-			this.node = ctx.createScriptProcessor(1024, 1, 1);
-			this.node.onaudioprocess = function(e) {
-				that.requestDraw(e.inputBuffer.getChannelData(0));
-			};
-			this.node.connect(ctx.destination);
+			if (!userms) {
+				var that = this;
+				this.node = ctx.createScriptProcessor(1024, 1, 1);
+				this.node.onaudioprocess = function(e) {
+					that.requestDraw(e.inputBuffer.getChannelData(0));
+				};
+				this.node.connect(ctx.destination);
+				this.maxSamples = 50;
+			} else {
+				window.__rmsvis = this;
+				window.__rmsvistext = $("<span>").appendTo(c);
+				this.maxSamples = this.canvas.width();
+			}
 
-			this.maxSamples = 50;
 		}
 
 		draw(pcm) {
@@ -73,6 +79,7 @@ mkPlayer.plugin("WebAudio-DSP", function() {
 			p.clearRect(x,0,width1,height);
 
 			var dt = Math.floor(pcm.length / width1);
+			if (dt == 0) dt = 1;
 			// sample pcm and build path string
 			for (let i = 0; i < pcm.length - 1; i += dt) {
 				y = yCenter - Math.round(pcm[i] * height);
@@ -97,7 +104,7 @@ mkPlayer.plugin("WebAudio-DSP", function() {
 
 			this.node = ctx.createAnalyser();
 			this.node.minDecibels = -90;
-			this.node.maxDecibels = -10;
+			this.node.maxDecibels = -0;
 			this.data = new Float32Array(this.node.frequencyBinCount);
 			this.freqBars = c.width() / BAR_SPACE;
 
@@ -161,8 +168,11 @@ mkPlayer.plugin("WebAudio-DSP", function() {
 		var mixer1 = ac.createGain();
 		var mixer2 = ac.createGain();
 		var mixer3 = ac.createGain();
+		var mixer4 = ac.createGain();
+		mixer4.connect(ac.destination);
 
-		mixer3.connect(ac.destination);
+		var div = $("<div>").css({width:"400px", height:"200px"});
+		div.append('<span style="position: absolute; right: 4px; bottom: 4px; font-size: 12px;">Demo by Roj234</span>拖动滑块调节效果');
 
 		var cfg_ko = karaokeFilter(ac, src, mixer0);
 		cfg_ko.frequency(140, 7400);
@@ -170,9 +180,7 @@ mkPlayer.plugin("WebAudio-DSP", function() {
 		var cfg_ec = echoFilter(ac, mixer0, mixer1);
 		var cfg_disto = distortionFilter(ac, mixer1, mixer2);
 		var cfg_conv = convolveFilter(ac, mixer2, mixer3);
-
-		var div = $("<div>").css({width:"400px", height:"200px"});
-		div.append('<span style="position: absolute; right: 4px; bottom: 4px; font-size: 12px;">Demo by Roj234</span>拖动滑块调节效果');
+		var cfg_rms = RMSFilter(ac, mixer3, mixer4);
 
 		function slider(name, cb, max=1, init=0) {
 			div.append("<br />" + name + ":&nbsp;");
@@ -195,31 +203,120 @@ mkPlayer.plugin("WebAudio-DSP", function() {
 		mixerSlider(mixer0);
 		slider("回声强度", cfg_ec.strength, 1.5);
 		slider("回声时间", cfg_ec.time, 0.5);
-		mixerSlider(mixer1);
 		slider("失真强度", (e) => cfg_disto.amount(Math.exp(e)), 9);
-		mixerSlider(mixer2);
 		slider("混响强度", cfg_conv.strength);
 		mixerSlider(mixer3);
+		slider("归一音量", cfg_rms.target_rms);
 
 		$.dialog({title:"Visualizer", content:div[0], beforeunload: function() {
-			fs.destroy();
+			//fs.destroy();
 			fs1.destroy();
-			vs.destroy();
-			fs.canvas.remove();
+			//vs.destroy();
+			vs1.destroy();
+			//fs.canvas.remove();
 			fs1.canvas.remove();
-			vs.canvas.remove();
+			//vs.canvas.remove();
+			vs1.canvas.remove();
 			return false;
 		}});
 
-		var fs = new FreqVisualizer(ac, div);
-		fs.visualize(src);
+		//var fs = new FreqVisualizer(ac, div);
+		//fs.visualize(src);
 
 		var fs1 = new FreqVisualizer(ac, div);
-		fs1.visualize(mixer3);
+		fs1.visualize(mixer4);
 
-		var vs = new WaveVisualizer(ac, div);
-		vs.visualize(mixer3);
+		//var vs = new WaveVisualizer(ac, div);
+		//vs.visualize(mixer4);
+
+		var vs1 = new WaveVisualizer(ac, div, true);
 	});
+
+	class SlidingAverage {
+		constructor(window) {
+			this.win = window;
+			this.len = 0;
+			this.avg = 0;
+		}
+		sum(val) {
+			if (this.len >= this.win) this.len = this.win-1;
+			let avg = this.avg * this.len + val;
+			return this.avg = avg / ++this.len;
+		}
+	}
+
+	function RMSFilter(ctx, src, dst, canvas) {
+		const gainNode = ctx.createGain();
+		const nullNode = ctx.createGain();
+		const vol = ctx.createScriptProcessor(256, 1, 1);
+
+		var targetRms = 0.05;
+
+		let avgRms = new SlidingAverage(1024);
+		let avgMax = new SlidingAverage(128);
+
+		let maxRms = 0.2;
+		let updateCount = 0;
+		vol.onaudioprocess = function(evt) {
+			if (targetRms == 0) {
+				gainNode.gain.value = 1;
+				return;
+			}
+
+			const input = evt.inputBuffer.getChannelData(0),
+				len = input.length;
+
+			let sum = 0;
+			for (let i = 0; i < len; i++) {
+				sum += input[i] * input[i];
+			}
+			let rms = Math.sqrt(sum / len);
+			//let rms = Math.hypot.apply(Math, input);
+			//rms **= 2;
+			if (window.__rmsvis) {
+				if (rms > maxRms) maxRms = rms;
+				window.__rmsvis.requestDraw([compress(rms, maxRms)-0.5, 0]);
+				if (++ updateCount == 200) {
+					window.__rmsvistext.text("滑动有效值("+avgMax.avg.toFixed(3)+"): " + avgRms.avg.toFixed(5) + " | 对数增益: " + compress(targetRms, avgRms.avg).toFixed(4));
+					updateCount = 0;
+					avgMax.sum(0.2);
+					maxRms = avgMax.sum(maxRms);
+				}
+			}
+			if (rms < 1e-2) return;
+
+			rms = avgRms.sum(rms);
+
+			const gain = compress(targetRms, rms);
+			gainNode.gain.value = 
+				gain != gain 
+				? 1 : 
+				gain > 20 
+				? 20 : 
+				gain < 0.05 
+				? 0.05 
+				: gain;
+		};
+
+		src.connect(gainNode);
+		gainNode.connect(dst);
+
+		src.connect(vol);
+		vol.connect(nullNode);
+		nullNode.connect(dst);
+		nullNode.gain.value = 1e-100;
+
+	return {
+			target_rms: function(volume) {
+				targetRms = volume*volume;
+				console.log(targetRms);
+			}
+		};
+	}
+
+	function compress(num, max) {
+		return Math.log10(num+1) / Math.log10(max+1);
+	}
 
 	function karaokeFilter(ctx, src, dst) {
 		// direct output
