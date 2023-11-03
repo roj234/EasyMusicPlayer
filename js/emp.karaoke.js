@@ -309,7 +309,6 @@ mkPlayer.plugin("WebAudio-DSP", function() {
 	return {
 			target_rms: function(volume) {
 				targetRms = volume*volume;
-				console.log(targetRms);
 			}
 		};
 	}

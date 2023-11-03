@@ -12,13 +12,31 @@ window.apply = function (o, n) {
 $(function () {
 	let config = window.mkPlayer, rem = window.rem, musicList = window.musicList;
 	let msg = $.dialog.msg;
-	// 这些变量也外部用不到: 进度条, 歌词进度, 背景计时器, 自动缓存
-	let lastProgress = -1, lastLyric = -1, changeBgTimeout = -1, cache;
+	// 这些变量也外部用不到: 歌词进度, 背景计时器, 自动缓存
+	let lastLyric = -1, changeBgTimeout = -1, cache;
 
 	let isMobile = {
 		any: function () {
 			return !!navigator.userAgent.match(/Mobile|Android|iPhone|iPad|iPod/i);
 		}
+	};
+
+	const T = Math.floor(1000 / 60);
+	const requestAnimationFrame = window.requestAnimationFrame || (function (cb) {
+		setTimeout(cb, T);
+	});
+	const scheduler = function(callback) {
+		let _waiting = false;
+		let _lastArg;
+		return function() {
+			_lastArg = Array.from(arguments);
+			if (_waiting) return;
+			_waiting = true;
+			requestAnimationFrame((time) => {
+				_waiting = false;
+				callback.apply(this,[time,..._lastArg]);
+			});
+		};
 	};
 
 	$.ajax.config.beforeSend = function (xhr) {
@@ -194,9 +212,6 @@ $(function () {
 	function updateOrder() {
 		let el = $(".btn-order").removeClass("single list linear random");
 
-		delete rem.repeatA;
-		delete rem.repeatB;
-
 		rem.audio[0].loop = false;
 		delete rem.rndId;
 		switch (rem.order) {
@@ -274,6 +289,8 @@ $(function () {
 		} else if (rem.idPlaying === no && musicList[rem.listPlaying]?.item[no] === rem.currentPlaying) {
 			// 已经在播放，时间调到开始位置
 			rem.audio[0].currentTime = 0;
+			//play(rem.currentPlaying);
+			rem.audio[0].play();
 			return true;
 		}
 		unRandom(rem.listDisplay);
@@ -362,6 +379,8 @@ $(function () {
 
 	// 停止播放
 	function stop() {
+		delete rem.repeatA;
+		delete rem.repeatB;
 		$("#music-progress").removeClass("loading load-fail");
 		rem.errCount = 0;
 		if (!rem.currentPlaying) return;
@@ -388,6 +407,11 @@ $(function () {
 		this.percent = percent;
 		this.callback = callback;
 		this.locked = false;
+		this.scheduler = scheduler((time, percent) => {
+			let px = Math.floor(this.bar[0].clientWidth*percent);
+			this.bar.find(".dot").css("left", px+"px");
+			this.bar.find(".prog").css("width", px+"px");
+		});
 		this.init(flag == null ? 1 : flag);
 	}
 
@@ -463,8 +487,7 @@ $(function () {
 			if (percent > 1) percent = 1;
 			if (percent < 0) percent = 0;
 			this.percent = percent;
-			this.bar.find(".dot").css("left", (percent * 100) + "%");
-			this.bar.find(".prog").css("width", (percent * 100) + "%");
+			this.scheduler(percent);
 			if (!skipCallback) this.callback(percent);
 			return true;
 		},
@@ -670,7 +693,7 @@ $(function () {
 					$("#blur-img").attr('src', img).once("load", function() {
 						$(this).fadeIn(800);
 					});
-				}, 800);
+				}, 850);
 				$("#blur-img").fadeOut(800);
 			}
 			$("#music-cover,#sheet .sheet(0) img").attr('src', img);
@@ -1050,7 +1073,7 @@ $(function () {
 	function sheetHtml(i, music, del) {
 		return '<div data-no="' + i + '" class="sheet"><img src="' + (
 			music.cover || "images/player_cover.png"
-		) + '"><p>' + music.name + '</p>' + (del ? '<span class="remove" title="删除"></span>' : '') + '</div>';
+		) + '"><p title="'+music.name+'">' + music.name + '</p>' + (del ? '<span class="remove" title="删除"></span>' : '') + '</div>';
 	}
 
 	// 清空用户的同步列表
@@ -1704,11 +1727,6 @@ $(function () {
 		return lrcObj;
 	}
 
-	const T = Math.floor(1000 / 60);
-	let requestAnimationFrame = window.requestAnimationFrame || (function (cb) {
-		setTimeout(cb, T);
-	});
-
 	function __animate(elm, prop, to, time) {
 		let v = elm[prop]();
 		let step = (to - elm[prop]()) / (time / T);
@@ -1765,14 +1783,7 @@ $(function () {
 				a.currentTime = rem.repeatA || 0;
 			}
 
-			let sec = Date.now();
-
-			let last = lastProgress;
-			// 2021 / 1 / 23 降低CPU占用率
-			if (sec - last > 200) {
 				mediaHub && mediaHub.updatePos();
-
-				lastProgress = sec;
 
 				// 同步进度条
 				let pc = a.currentTime / a.duration;
@@ -1802,7 +1813,7 @@ $(function () {
 					} else
 						rem.prefetch.cacheId = -1;
 				}
-			}
+			
 			// 同步歌词显示
 			scrollLyric(a.currentTime);
 		}).on("play", function () {
@@ -2028,7 +2039,8 @@ $(function () {
 		<span class="info-btn 6">触屏模式</span>&nbsp;&nbsp;\
 		<span class="info-btn 7">定时播放</span>&nbsp;&nbsp;<br/>\
 		<span class="info-btn 8">按歌手整理列表</span>&nbsp;&nbsp;\
-	<span class="info-btn 9">按专辑整理列表</span>')
+	<span class="info-btn 9">按专辑整理列表</span>&nbsp;&nbsp;\
+	<span class="info-btn 10">按时间倒序整理列表</span>')
 		.delegate("click", "span", function (e) {
 			switch (e.target.classList[1]) {
 				case '1': stop(); break;
@@ -2111,6 +2123,10 @@ $(function () {
 				break;
 				case '9':
 					musicList[rem.listDisplay].item.sort(pysorter((a) => a.album));
+					loadList(rem.listDisplay);
+				break;
+				case '10':
+					musicList[rem.listDisplay].item.sort((a, b) => b.mt - a.mt);
 					loadList(rem.listDisplay);
 				break;
 			}
@@ -2275,6 +2291,9 @@ $(function () {
 		return true;
 	});
 
+	const LMS = scheduler((time,par) => {
+		par.find(".name").append(rem.menu);
+	});
 	function listMenuHandler(e) {
 		if ((e != null) === rem.menu.isConnected) return;
 
@@ -2286,7 +2305,7 @@ $(function () {
 		$(c[1])[ls !== 1 ? 'show' : 'hide']().removeClass("added").attr("title", "加入正在播放")['if'](musicInList(1, musicList[rem.listDisplay].item[num]) !== -1).addClass("added").attr("title", "从正在播放删除");
 		$(c[2])[(ls >= 1 && ls <= 3 || musicList[ls].my) ? 'show' : 'hide']();
 
-		this.find(".name").append(rem.menu);
+		LMS(this);
 	}
 
 	// 列表项播放

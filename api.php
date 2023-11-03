@@ -32,13 +32,13 @@ switch (getParam('types')) {
 
 		$type = getParam('type');
 		if ($type == "get") {
-			if (is_file("user/$user.json")) {
-				show_json(file_get_contents("user/$user.json"));
+			if (is_file("user/$user.json.gz")) {
+				show_json(gzdecode(file_get_contents("user/$user.json.gz")));
 			} else {
-				show_json('{"history":[], "playing":[], "custom_list":[]}');
+				show_json('{"history":[], "playing":[], "custom_list":null}');
 			}
 		} else {
-			$data = is_file("user/$user.json") ? json_decode(file_get_contents("user/$user.json"), true) : ["history" => [], "playing" => [], "custom_list" => []];
+			$data = is_file("user/$user.json.gz") ? json_decode(gzdecode(file_get_contents("user/$user.json.gz")), true) : ["history" => [], "playing" => [], "custom_list" => null];
 
 			$v = getParam("history");
 			if($v) {
@@ -53,7 +53,7 @@ switch (getParam('types')) {
 				$data["custom_list"] = json_decode($v, false, 7);
 			}
 
-			file_put_contents("user/$user.json", json_encode($data, JSON_UNESCAPED_UNICODE));
+			file_put_contents("user/$user.json.gz", gzencode(json_encode($data, JSON_UNESCAPED_UNICODE)));
 			show_json('{"ok": 1}');
 		}
 
@@ -160,9 +160,14 @@ switch (getParam('types')) {
 		$pf = hash_decode(getParam("id"));
 		if (!ENABLE_PHYSIC_DELETE) show_json("security not pass");
 		del($pf."jpg");
+		del($pf."jpeg");
+		del($pf."png");
+		del($pf."bmp");
 		del($pf."ogg");
 		del($pf."webm");
+		del($pf."flac");
 		del($pf."m4a");
+		del($pf."wav");
 		del($pf."mp3");
 		del($pf."lrc");
 		del($pf."cn.lrc");
@@ -207,7 +212,7 @@ switch (getParam('types')) {
 					if (false == $pos) continue;
 					$ext = strtolower(substr($file, ++$pos));
 
-					if($ext == "mp3" || $ext == "m4a" || $ext == "ogg" || $ext == "webm") {
+					if($ext == "mp3" || $ext == "m4a" || $ext == "ogg" || $ext == "webm" || $ext == "flac" || $ext == "wav") {
 						$x = -strlen($ext);
 						$total = explode(" - ", substr($file, 0, $x-1));
 
@@ -216,7 +221,8 @@ switch (getParam('types')) {
 							"id" => hash_encode($path), 
 							"name" => $total[0],
 							"f" => 1, 
-							"url" => $ext
+							"url" => $ext, 
+							"mt" => filemtime($path.$ext)
 						];
 
 						foreach (["jpg", "jpeg", "png", "bmp"] as $ext) {
